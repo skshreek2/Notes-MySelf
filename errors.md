@@ -1,4 +1,7 @@
 
+
+[UIKitCore] Modifying properties of a view's layer off the main thread is not allowed: view <PfAmpsNativeKit.AMPSWebview: 0x1057050e0> with no
+associated or ancestor view controller; backtrace:
      
   15 |       let amps = AMPSPaymentProvider()
 > 16 |       amps.initialize {status, error in
