@@ -1,7 +1,14 @@
+
+In Xcode:
+Build Settings → Swift Compiler - General → Objective-C Bridging Header
+$(PROJECT_DIR)/RNDeviceHelper-Bridging-Header.h
+-----------------------------------------------------------------------
+
+
 Add it in Applications (in our case it is Testing App)
 pod 'react-native-device-helper', :path => '../node_modules/react-native-device-helper/ios'
 
-
+-------------------------------------------------------------------------------------------
 
 Run this command to set the bridging header path in the .xcodeproj:
 
