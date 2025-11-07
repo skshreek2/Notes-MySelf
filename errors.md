@@ -1,4 +1,9 @@
 
+❌  error: Build input file cannot be found: '/Users/s82988/Documents/POC/TestAppRNLibrary-main/node_modules/react-native-testbridge-new/ios/RNDeviceHelper-Bridging-Header.h'. Did you forget to declare this file as an output of a script phase or custom build rule which produces it? (in target 'react-native-testbridge-new' from project 'Pods')
+
+
+
+
 
 [UIKitCore] Modifying properties of a view's layer off the main thread is not allowed: view <PfAmpsNativeKit.AMPSWebview: 0x1057050e0> with no
 associated or ancestor view controller; backtrace:
