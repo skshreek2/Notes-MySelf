@@ -1,4 +1,43 @@
 
+import {
+  Platform,
+  NativeModules,
+} from 'react-native';
+
+const LINKING_ERROR =
+  `The package 'react-native-pf-issuer' doesn't seem to be linked. Make sure: \n\n` +
+  Platform.select({ ios: "- You have run 'pod install'\n", default: '' }) +
+  '- You rebuilt the app after installing the package\n' +
+  '- You are not using Expo Go\n';
+
+export const RNPfNbblIssuerView = NativeModules.HdfcIssuerBridge
+  ? NativeModules.HdfcIssuerBridge
+  : new Proxy(
+    {},
+    {
+      get() {
+        throw new Error(LINKING_ERROR);
+      },
+    }
+  );
+
+export const PaymentIssuerBridge = (data: string) => {
+  RNPfNbblIssuerView.payment(data).then((res: any, error: any) => {
+    console.log(res, error);
+  });
+  
+};
+
+export const PaymentAquirerBridge = () => { 
+  RNPfNbblIssuerView.initializeAndLaunch(): Promise<string> {
+    return NativeModule.initializeAndLaunch();
+  }
+};
+
+
+
+
+
 
 
 ❌  error: Using bridging headers with framework targets is unsupported (in target 'react-native-testbridge-new' from project 'Pods')
