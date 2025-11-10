@@ -1,3 +1,18 @@
+export const PaymentAquirerBridge = async (): Promise<any> => {
+  try {
+    const result = await RNPfNbblIssuerView.initializeAndLaunch();
+    return result;
+  } catch (error) {
+    console.error('Error launching acquirer:', error);
+    throw error;
+  }
+};
+
+
+
+
+
+
 
 import {
   Platform,
