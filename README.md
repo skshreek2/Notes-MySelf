@@ -1,4 +1,11 @@
 
+
+
+"FRAMEWORK_SEARCH_PATHS" => "\"$(PODS_ROOT)/../../ios\" \"$(PODS_TARGET_SRCROOT)/ios\""
+
+
+
+
 ***podspec**
 
 require 'json'
