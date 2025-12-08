@@ -1,5 +1,34 @@
 
 
+@interface RCT_EXTERN_MODULE(HdfcAcquirerBridge, RCTEventEmitter)
+RCT_EXTERN_METHOD(initialize:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
+RCT_EXTERN_METHOD(launch: (NSDictionary *)paymentData (RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
+@end
+
+
+
+@objc
+  func launch(_ paymentData: [String: Any], resolver resolve: @escaping RCTPromiseResolveBlock, rejecter reject:  @escaping RCTPromiseRejectBlock) {
+     
+        let amps = AMPSPaymentProvider()
+        amps.delegate = self
+              if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene, let rootVC = windowScene.windows.first?.rootViewController {
+                  amps.launch(paymentReqData: paymentData, viewControler: rootVC)
+                  resolve("Launch from AMPS -- paymentData \(paymentData)")
+              }
+        }
+  }
+
+
+ await launch(JSON.stringify(paymentReqData)).then((result: any) =>{
+      console.log(result);
+      
+    }).catch((error: any)=>{
+      console.log(error);
+    });
+
+
+
 
 "FRAMEWORK_SEARCH_PATHS" => "\"$(PODS_ROOT)/../../ios\" \"$(PODS_TARGET_SRCROOT)/ios\""
 
