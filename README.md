@@ -1,4 +1,23 @@
 
+export const AcquirerBridge = NativeModules.HdfcAcquirerBridge
+  ? NativeModules.HdfcAcquirerBridge
+  : new Proxy(
+    {},
+    {
+      get() {
+        throw new Error(LINKING_ERROR);
+      },
+    }
+  );
+
+export const initialize = () => {
+  return AcquirerBridge.initialize()
+};
+
+export const launch = (data: string) => {
+  return AcquirerBridge.launch(data)
+};
+
 
 @interface RCT_EXTERN_MODULE(HdfcAcquirerBridge, RCTEventEmitter)
 RCT_EXTERN_METHOD(initialize:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
