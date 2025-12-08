@@ -1,4 +1,10 @@
 
+Argument of type '{ clientRefId: string; merchantId: string; orderId: string; amount: number; env: string; referenceId: string; clientSec: string; deviceInfo: ({ name: string; value: number; } | { name: string; value: string; })[]; additionalInfo: { ...; }[]; }' is not assignable to parameter of type 'string'.
+
+
+
+
+
 error: Multiple commands produce '/Users/s82988/Library/Developer/Xcode/DerivedData/HDFCBankMobileBanking-fvmfzldupohvbdgltijpuobemnuv/Build/Products/Debug-iphoneos/react-native-pf-issuer/react_native_pf_issuer.framework/Headers/acquirerGateway.h'
     note: Target 'react-native-pf-issuer' (project 'Pods') has copy command from '/Users/s82988/Documents/Projects/Mobile-Banking-UI/node_modules/react-native-pf-issuer/ios/PfAmpsNativeKit.xcframework/ios-arm64/PfAmpsNativeKit.framework/Headers/acquirerGateway.h' to '/Users/s82988/Library/Developer/Xcode/DerivedData/HDFCBankMobileBanking-fvmfzldupohvbdgltijpuobemnuv/Build/Products/Debug-iphoneos/react-native-pf-issuer/react_native_pf_issuer.framework/Headers/acquirerGateway.h'
     note: Target 'react-native-pf-issuer' (project 'Pods') has copy command from '/Users/s82988/Documents/Projects/Mobile-Banking-UI/node_modules/react-native-pf-issuer/ios/PfAmpsNativeKit.xcframework/ios-arm64_x86_64-simulator/PfAmpsNativeKit.framework/Headers/acquirerGateway.h' to '/Users/s82988/Library/Developer/Xcode/DerivedData/HDFCBankMobileBanking-fvmfzldupohvbdgltijpuobemnuv/Build/Products/Debug-iphoneos/react-native-pf-issuer/react_native_pf_issuer.framework/Headers/acquirerGateway.h'
