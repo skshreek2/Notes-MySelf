@@ -1,4 +1,11 @@
 
+Could not determine the dependencies of task ':app:processDebugResources'.
+> Could not resolve all dependencies for configuration ':app:debugRuntimeClasspath'.
+   > Could not find :acquirersdk-release:.
+     Required by:
+         project :app > project :react-native-pf-acquirer
+
+
 Argument of type '{ clientRefId: string; merchantId: string; orderId: string; amount: number; env: string; referenceId: string; clientSec: string; deviceInfo: ({ name: string; value: number; } | { name: string; value: string; })[]; additionalInfo: { ...; }[]; }' is not assignable to parameter of type 'string'.
 
 
