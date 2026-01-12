@@ -4,3 +4,19 @@ Plugin org.apache.maven.plugins:maven-resources-plugin:3.3.1 or one of its depen
 [ERROR] 
 [ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
 [ERROR] Re-run Maven using the -X switch to enable full debug logging.
+
+
+
+<settings>
+  <proxies>
+    <proxy>
+      <id>corp-proxy</id>
+      <active>true</active>
+      <protocol>https</protocol>
+      <host>proxy.company.com</host>
+      <port>8080</port>
+      <username>yourUser</username>
+      <password>yourPassword</password>
+    </proxy>
+  </proxies>
+</settings>
