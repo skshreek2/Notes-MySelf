@@ -1,1 +1,68 @@
 
+Response Item <NSHTTPURLResponse: 0x122ddccc0> { URL: http://10.197.102.1:8085/demoapp/api/post } { Status Code: 200, Headers {
+    "Cache-Control" =     (
+        "no-cache, no-store, max-age=0, must-revalidate"
+    );
+    Connection =     (
+        "keep-alive"
+    );
+    "Content-Type" =     (
+        "application/json"
+    );
+    Date =     (
+        "Thu, 22 Jan 2026 06:06:44 GMT"
+    );
+    Expires =     (
+        0
+    );
+    "Keep-Alive" =     (
+        "timeout=60"
+    );
+    Pragma =     (
+        "no-cache"
+    );
+    "Transfer-Encoding" =     (
+        Identity
+    );
+    "X-Content-Type-Options" =     (
+        nosniff
+    );
+    "X-Frame-Options" =     (
+        DENY
+    );
+    "X-XSS-Protection" =     (
+        0
+    );
+} }
+Response Data 24919 bytes
+
+
+
+
+ var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.addValue("Bearer \(auth_token)", forHTTPHeaderField: "Authorization")
+        
+        let body:[String: Any] = ["phoneNumber": phoneNumber]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        
+        print("Request \(request)")
+        
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            print("Response Item \(response)")
+            print("Response Data \(data)")
+            
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw URLError(.badServerResponse)
+            }
+            
+            let json  = try JSONDecoder().decode([Item].self, from: data)
+            
+            print("Success: \(json)")
+            
+        }catch {
+            print(error.localizedDescription)
+        }
