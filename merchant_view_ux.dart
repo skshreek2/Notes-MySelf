@@ -41,8 +41,14 @@ class MerchantDashboardView extends StatefulWidget {
   State<MerchantDashboardView> createState() => _MerchantDashboardViewState();
 }
 
+class ChartType {
+  static const bar = 0;
+  static const line = 1;
+}
 class _MerchantDashboardViewState extends State<MerchantDashboardView>
     with TickerProviderStateMixin {
+
+     late AnimationController _controller ;
   // ✅ SAME Animation state - NOTHING CHANGED
   List<double> weeklyVolumeHeights = [];
   List<double> statusHeights = [];
@@ -59,6 +65,10 @@ class _MerchantDashboardViewState extends State<MerchantDashboardView>
   bool revenueAnimComplete = false;
   bool dailyAnimComplete = false;
   bool isPlaying = false;
+
+  int _weeklyType = ChartType.bar;
+
+  
 
 
 @override
@@ -80,6 +90,10 @@ super.dispose();
   void initState() {
     super.initState();
     print(' _Inside StateState START #$hashCode'); 
+     _controller = AnimationController(
+      duration: const Duration(milliseconds: 3000),
+      vsync: this,
+    );
     // WidgetsBinding.instance.addPostFrameCallback((_) {
     // Future.delayed(const Duration(milliseconds: 1000), () {
     //   if (mounted) {
@@ -120,7 +134,7 @@ Widget build(BuildContext context) {
     child: BlocConsumer<OrdersBloc, OrdersState>(
       listener: (context, state) {
 
-        print("State. $state");
+       
         // ✅ Restart animations when new data loads (UNCHANGED)
         if (state is OrdersPaginationLoaded && !isPlaying) {
           Future.delayed(const Duration(milliseconds: 100), () {
@@ -129,7 +143,7 @@ Widget build(BuildContext context) {
                 _resetAnimations();
                 isPlaying = true;
               });
-              print("Start Animation From Bloc Consumer");
+              
               _startAllAnimations();
             }
           });
@@ -302,11 +316,18 @@ Widget _buildDashboardUI(List<TransactionEntity> filteredOrders, CalendarState c
                           )
                         : Column(
                             children: [
-                              _buildChartRow(
-                                _WeeklyVolumeBarChart(screenWidth, filteredOrders),
-                                _RevenueLineChart(screenWidth, filteredOrders),
-                                'Weekly Volume',
-                              ),
+                              // _buildChartRow(
+                              //   _WeeklyVolumeBarChart(screenWidth, filteredOrders),
+                              //   _RevenueLineChart(screenWidth, filteredOrders),
+                              //   'Weekly Volume',
+                              // ),
+                              _buildChartRowToggle(_buildWeeklyChart(screenWidth, filteredOrders),'Weekly Volume', _weeklyType, (newType) {
+                                WidgetsBinding.instance.addPostFrameCallback((_) {
+                                  if (mounted) {
+                                    setState(() => _weeklyType = newType);
+                                    }
+                                  });
+                                },),
                               SizedBox(height: 30),
                               _buildChartRow(
                                 _SuccessRatePieChart(screenWidth, filteredOrders),
@@ -389,10 +410,8 @@ Widget _buildDashboardUI(List<TransactionEntity> filteredOrders, CalendarState c
       statusHeights.clear();
       revenuePoints.clear();
       dailyPoints.clear();
-      weeklyAnimComplete = statusAnimComplete = revenueAnimComplete =
-          dailyAnimComplete = false;
-      touchedWeeklyBarIndex = touchedStatusBarIndex = touchedSuccessIndex =
-          touchedPaymentIndex = -1;
+      weeklyAnimComplete = statusAnimComplete = revenueAnimComplete = dailyAnimComplete = false;
+      touchedWeeklyBarIndex = touchedStatusBarIndex = touchedSuccessIndex = touchedPaymentIndex = -1;
     });
   }
 
@@ -804,6 +823,56 @@ String getLast15DaysRange() {
     ),
   );
 
+
+Widget _buildChartRowToggle(Widget weeklyChart, String chartName, int currentType, Function(int) onToggle) => Container(
+    padding: const EdgeInsets.all(24),
+    decoration: BoxDecoration(
+      color: Theme.of(context).cardColor,
+      borderRadius: BorderRadius.circular(20),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.1),
+          blurRadius: 25,
+          offset: const Offset(0, 8),
+        ),
+      ],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+          Text(
+          chartName,
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: Theme.of(context).textTheme.titleLarge?.color,
+          ),
+        ),
+        IconButton(onPressed: () => onToggle (1 - currentType),
+         icon: Icon(currentType == 0 ? Icons.show_chart : Icons.bar_chart,
+         size: 28,
+         color: Theme.of(context).textTheme.titleLarge?.color,),
+         tooltip: currentType == 0 ? 'Switch to Line chart' : 'Switch to Bar chart',
+         style: IconButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5)),
+         padding: const EdgeInsets.all(8),
+         )
+          ],
+        ),
+        
+        const SizedBox(height: 24),
+      //  Expanded(child: weeklyChart),
+         SizedBox(
+        height: 300,  // Fixed height for charts
+        child: weeklyChart,
+      ),
+      ],
+    ),
+  );
+  
   Widget _buildChartColumn(Widget chart1, Widget? chart2) => Container(
     padding: const EdgeInsets.all(20),
     decoration: BoxDecoration(
@@ -899,6 +968,13 @@ String getLast15DaysRange() {
     ),
   );
 
+Widget _buildWeeklyChart(double screenWidth,
+    List<TransactionEntity> orders) {
+  return _weeklyType == ChartType.bar 
+    ? _WeeklyVolumeBarChart(screenWidth, orders)    // Shows BAR chart
+    : _RevenueLineChart( screenWidth, orders);  // Shows LINE chart
+}
+
   // ✅ SAME CHART WIDGETS - NOW TAKE ORDERS PARAMETER
   Widget _WeeklyVolumeBarChart(
     double screenWidth,
@@ -925,10 +1001,6 @@ String getLast15DaysRange() {
       ),
       child: Column(
         children: [
-          // Text(
-          //   'Weekly Volume',
-          //   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          // ),
           SizedBox(height: 16),
           Expanded(
             child: BarChart(
@@ -998,12 +1070,8 @@ String getLast15DaysRange() {
   }
 
   Widget _RevenueLineChart(double screenWidth, List<TransactionEntity> orders) {
-    final spots = revenuePoints.isNotEmpty
-        ? revenuePoints
-        : _revenueTrendData(orders);
-    final maxAmount = spots.isNotEmpty
-        ? spots.map((e) => e.y).reduce(math.max) * 1.1
-        : 500000.0;
+    final spots = revenuePoints.isNotEmpty ? revenuePoints : _revenueTrendData(orders);
+    final maxAmount = spots.isNotEmpty ? spots.map((e) => e.y).reduce(math.max) * 1.1 : 500000.0;
     final dateKeys = _getDateKeys(orders);
 
     return Container(
@@ -1022,13 +1090,22 @@ String getLast15DaysRange() {
           // ),
           SizedBox(height: 16),
           Expanded(
-            child: LineChart(
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0.0, end: (dateKeys.length - 1).toDouble()),
+              duration: const Duration(milliseconds: 3000),
+              curve: Curves.easeOutBack, 
+              builder: (context, progress, child) {
+
+              return  LineChart(
               LineChartData(
                 minX: 0,
                 maxX: (dateKeys.length - 1).toDouble(),
                 maxY: maxAmount,
                 minY: 0,
-                gridData: FlGridData(show: true),
+                gridData: FlGridData(show: true,
+                      drawVerticalLine: false,
+                      getDrawingHorizontalLine: (value) =>
+                          FlLine(color: Theme.of(context).dividerColor, strokeWidth: 1),),
                 titlesData: FlTitlesData(
                   bottomTitles: AxisTitles(
                     axisNameWidget: Text("Date"),
@@ -1039,8 +1116,9 @@ String getLast15DaysRange() {
                       interval: 1,
                       getTitlesWidget: (value, meta) {
                         final index = value.toInt();
-                        if (index < 0 || index >= dateKeys.length)
+                        if (index < 0 || index >= dateKeys.length){
                           return SizedBox.shrink();
+                        }
                         final day = dateKeys[index].substring(8, 10);
                         return Padding(
                           padding: EdgeInsets.only(top: 8),
@@ -1084,10 +1162,11 @@ String getLast15DaysRange() {
                   LineChartBarData(
                     spots: spots,
                     isCurved: true,
+                    curveSmoothness: 0.3,
                     gradient: LinearGradient(
                       colors: [Colors.blue.shade600, Colors.blue.shade400],
                     ),
-                    barWidth: 4,
+                    barWidth: 3,
                     dotData: FlDotData(show: true),
                     belowBarData: BarAreaData(
                       show: true,
@@ -1101,6 +1180,8 @@ String getLast15DaysRange() {
                   ),
                 ],
               ),
+            );
+              }
             ),
           ),
         ],
