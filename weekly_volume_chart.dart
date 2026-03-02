@@ -44,7 +44,8 @@ const WeeklyVolumeChart({
             color: Theme.of(context).textTheme.titleLarge?.color,
           ),
         ),
-        IconButton(onPressed: () => onToggle (1 - currentType),
+        IconButton(
+         onPressed: () => onToggle (1 - currentType),
          icon: Icon(currentType == 0 ? Icons.show_chart : Icons.bar_chart,
          size: 28,
          color: Theme.of(context).textTheme.titleLarge?.color,),
@@ -52,6 +53,21 @@ const WeeklyVolumeChart({
          style: IconButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5)),
          padding: const EdgeInsets.all(8),
          )
+
+        // Container(
+        //   padding: const EdgeInsets.all(4),
+        //   decoration: BoxDecoration(
+        //     color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5),
+        //     borderRadius: BorderRadius.circular(12),  
+        //   ),
+        //   child:  Row(
+        //     children: [
+        //       _buildToggleIcon(context, icon: Icons.bar_chart, isSelected: currentType == 1, onTap: () => onToggle(1)),
+        //       _buildToggleIcon(context, icon: Icons.show_chart, isSelected: currentType == 0, onTap: () => onToggle(0)),
+              
+        //     ],
+        //   ),
+        // )
           ],
         ),
         
@@ -66,4 +82,24 @@ const WeeklyVolumeChart({
   );
   }
   
+}
+
+Widget _buildToggleIcon(BuildContext context, {
+  required IconData icon,
+   required bool isSelected, 
+   required VoidCallback onTap}){
+
+  return GestureDetector(
+    onTap: onTap,
+    child: AnimatedContainer(duration: const Duration(milliseconds: 250),
+    padding: const EdgeInsets.all(8),
+    decoration: BoxDecoration(
+      color: isSelected ? Theme.of(context).colorScheme.primary : Colors.transparent,
+      borderRadius: BorderRadius.circular(10),
+    ),
+    child: Icon(icon, size: 22, color: isSelected ? Colors.white : Theme.of(context).textTheme.titleLarge?.color),
+    ),
+
+     
+  );
 }
