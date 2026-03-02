@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hdfc_merchant_app/core/util/common.dart';
+import 'package:hdfc_merchant_app/features/dashboard/presentation/graphs/weekly_volume_chart.dart';
 import 'package:hdfc_merchant_app/features/payments/bloc/orders_bloc.dart';
 import 'package:hdfc_merchant_app/features/payments/data/orders_entity.dart';
 import 'package:hdfc_merchant_app/features/payments/data/orders_repository.dart';
@@ -68,28 +69,36 @@ class _MerchantDashboardViewState extends State<MerchantDashboardView>
 
   int _weeklyType = ChartType.bar;
 
+Timer? _revenueTimer;
+Timer? _dailyTimer;
+Timer? _weeklyVolumeTimer;
+Timer? _statusTimer;
   
-
+List<Timer> allDailyTimers = [];
 
 @override
 void deactivate() {
-  print("_MerchantDashboardViewState  DEACTIVATE 1");
+  
   super.deactivate();
 
-  print("_MerchantDashboardViewState DEACTIVATE 2");
+ 
 }
 // ignore: must_call_super
 @override
 void dispose(){
-  print("_MerchantDashboardViewState  DISPOSE 1 #$hashCode");
+  
+  _revenueTimer?.cancel();
+  _dailyTimer?.cancel();
+  _weeklyVolumeTimer?.cancel();
+  _statusTimer?.cancel();
 super.dispose(); 
-  print("_MerchantDashboardViewState  DISPOSE 2");
+  
 }
   
   @override
   void initState() {
     super.initState();
-    print(' _Inside StateState START #$hashCode'); 
+    
      _controller = AnimationController(
       duration: const Duration(milliseconds: 3000),
       vsync: this,
@@ -97,9 +106,9 @@ super.dispose();
     // WidgetsBinding.instance.addPostFrameCallback((_) {
     // Future.delayed(const Duration(milliseconds: 1000), () {
     //   if (mounted) {
-    //     print("Inside initState #$hashCode");
+   
     //     setState(() => isPlaying = true);
-    //     print("From INIT");
+   
     //     _startAllAnimations();
     //   }
     // });
@@ -108,7 +117,7 @@ super.dispose();
 
 @override
 Widget build(BuildContext context) {
-   print(' _Inside BUILD #$hashCode'); 
+   
   return MultiBlocProvider(
     providers: [
       BlocProvider.value(value: context.read<OrdersBloc>()),  // Existing OrdersBloc
@@ -119,7 +128,7 @@ Widget build(BuildContext context) {
         // ✅ API CALL HAPPENS HERE after date selection!
         if (calendarState.startDate != null && 
             calendarState.endDate != null ) {
-          print('📅 Date selected: ${calendarState.startDate} to ${calendarState.endDate}');
+          
           
           // ✅ TRIGGER API CALL
           context.read<OrdersBloc>().add(
@@ -321,13 +330,22 @@ Widget _buildDashboardUI(List<TransactionEntity> filteredOrders, CalendarState c
                               //   _RevenueLineChart(screenWidth, filteredOrders),
                               //   'Weekly Volume',
                               // ),
-                              _buildChartRowToggle(_buildWeeklyChart(screenWidth, filteredOrders),'Weekly Volume', _weeklyType, (newType) {
+                              // _buildChartRowToggle(_buildWeeklyChart(screenWidth, filteredOrders),'Weekly Volume', _weeklyType, (newType) {
+                              //   WidgetsBinding.instance.addPostFrameCallback((_) {
+                              //     if (mounted) {
+                              //       setState(() => _weeklyType = newType);
+                              //       }
+                              //     });
+                              //   },),
+
+                              WeeklyVolumeChart(chartName: 'Weekly Volume', currentType: _weeklyType, onToggle: (newType) {
                                 WidgetsBinding.instance.addPostFrameCallback((_) {
-                                  if (mounted) {
-                                    setState(() => _weeklyType = newType);
-                                    }
-                                  });
-                                },),
+                                  if(mounted){
+                                    setState( () => _weeklyType = newType);
+                                  }
+                                });
+                              },
+                              child: _buildWeeklyChart(screenWidth, filteredOrders),),
                               SizedBox(height: 30),
                               _buildChartRow(
                                 _SuccessRatePieChart(screenWidth, filteredOrders),
@@ -336,7 +354,7 @@ Widget _buildDashboardUI(List<TransactionEntity> filteredOrders, CalendarState c
                                   screenWidth,
                                   filteredOrders,
                                 ),
-                                'Status Dsitribution',
+                                'Status Distribution',
                               ),
                               SizedBox(height: 30),
                               _buildChartRow(
@@ -389,15 +407,14 @@ Widget _buildDashboardUI(List<TransactionEntity> filteredOrders, CalendarState c
 
   // ✅ SAME Animation Methods - UNCHANGED
   void _toggleAnimation() async {
-    print("inside toggleAnimation");
-    print("Before state isPlaying $isPlaying");
+   
     
     setState(() => isPlaying = !isPlaying);
-    print("After state isPlaying $isPlaying");
+   
     if (isPlaying) {
       _resetAnimations();
       await Future.delayed(const Duration(milliseconds: 100));
-      print("From Toggle");
+     
       _startAllAnimations();
     } else {
       _resetAnimations();
@@ -425,10 +442,7 @@ Widget _buildDashboardUI(List<TransactionEntity> filteredOrders, CalendarState c
 
 bool _allAnimationsComplete () {
 
-  // print("weeklyAnimComplete $weeklyAnimComplete");
-  // print("statusAnimComplete $statusAnimComplete");
-  // print("revenueAnimComplete $revenueAnimComplete");
-  // print("dailyAnimComplete $dailyAnimComplete");
+  
   
   return weeklyAnimComplete &&
    statusAnimComplete &&
@@ -440,7 +454,7 @@ void _checkAllAnimationsComplete() {
   if(_allAnimationsComplete()){
     setState(() {
       isPlaying = false;
-      //print(" All animations complete - Auto-paused");
+      
     });
   }
 }
@@ -653,7 +667,7 @@ String getLast15DaysRange() {
     weeklyVolumeHeights.clear();
     final targetData = _weeklyVolumeData(orders);
     for (int i = 0; i < targetData.length; i++) {
-      Timer(Duration(milliseconds: 60 * i), () {
+    _weeklyVolumeTimer =   Timer(Duration(milliseconds: 60 * i), () {
         if (mounted) {
           setState(() {
             final normalizedHeight =
@@ -675,7 +689,7 @@ String getLast15DaysRange() {
     statusHeights.clear();
     final targetData = _statusDistribution(orders);
     for (int i = 0; i < targetData.length; i++) {
-      Timer(Duration(milliseconds: 80 * i), () {
+    _statusTimer = Timer(Duration(milliseconds: 80 * i), () {
         if (mounted) {
           setState(() {
             statusHeights.add(targetData[i] * 2.5);
@@ -692,7 +706,7 @@ String getLast15DaysRange() {
         ? state.orders
         : <TransactionEntity>[];
     final targetPoints = _revenueTrendData(orders);
-    Timer.periodic(const Duration(milliseconds: 200), (timer) {
+    _revenueTimer = Timer.periodic(const Duration(milliseconds: 200), (timer) {
       if (revenuePoints.length >= targetPoints.length) {
         revenuePoints = List.from(targetPoints);
         revenueAnimComplete = true;
@@ -706,11 +720,14 @@ String getLast15DaysRange() {
   }
 
   void _startDailyAnimation(OrdersState state) {
+    print("Staterd DAILY animation");
     final orders = state is OrdersPaginationLoaded
         ? state.orders
         : <TransactionEntity>[];
     final targetPoints = _dailyTransactionTrend(orders);
-    Timer.periodic(const Duration(milliseconds: 200), (timer) {
+
+
+   final _newdailyTimer = Timer.periodic(const Duration(milliseconds: 200), (timer) {
       if (dailyPoints.length >= targetPoints.length) {
         dailyPoints = List.from(targetPoints);
         dailyAnimComplete = true;
@@ -721,6 +738,18 @@ String getLast15DaysRange() {
       }
       setState(() => dailyPoints.add(targetPoints[dailyPoints.length]));
     });
+
+    _dailyTimer = _newdailyTimer;
+    allDailyTimers.add(_newdailyTimer);
+
+    print("All Daily Timer Instances ${allDailyTimers.length} ===");
+    for(int i = 0; i < allDailyTimers.length; i++){
+        final t = allDailyTimers[i];
+        print('Timer $i: hashCode ${t.hashCode},'
+               'tick = ${t.tick}, '
+               'isActive = ${t.isActive}, ' );
+    }
+
   }
 
   // ✅ ALL SAME UI METHODS - JUST PASS ORDERS
@@ -1163,6 +1192,7 @@ Widget _buildWeeklyChart(double screenWidth,
                     spots: spots,
                     isCurved: true,
                     curveSmoothness: 0.3,
+                    preventCurveOverShooting: true,
                     gradient: LinearGradient(
                       colors: [Colors.blue.shade600, Colors.blue.shade400],
                     ),
