@@ -50,22 +50,46 @@ class _AnimatedRevenueLineChartState extends State<AnimatedRevenueLineChart>
     super.dispose();
   }
 
+
+
+
+  
   List<FlSpot> _buildAnimatedSpots(double progress) {
-    final visibleSpots = <FlSpot>[];
+  if (widget.spots.isEmpty) return [];
 
-    final total = widget.spots.length;
-    final visibleCount = total * progress;
+  final spots = widget.spots;
+  final total = spots.length;
 
-    for (int i = 0; i < total; i++) {
-      if (i < visibleCount) {
-        visibleSpots.add(widget.spots[i]);
-      } else {
-        break;
-      }
-    }
+  final value = progress * (total - 1);
+  final index = value.floor();
+  final remainder = value - index;
 
-    return visibleSpots;
+  final animatedSpots = <FlSpot>[];
+
+  // add all completed spots
+  for (int i = 0; i <= index && i < total; i++) {
+    animatedSpots.add(spots[i]);
   }
+
+  // interpolate next spot
+  if (index + 1 < total) {
+    final p1 = spots[index];
+    final p2 = spots[index + 1];
+
+    final x = p1.x + (p2.x - p1.x) * remainder;
+    final y = p1.y + (p2.y - p1.y) * remainder;
+
+    animatedSpots.add(FlSpot(x, y));
+  }
+
+  return animatedSpots;
+}
+
+
+
+
+
+  
 
   @override
   Widget build(BuildContext context) {
