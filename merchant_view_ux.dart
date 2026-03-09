@@ -65,7 +65,7 @@ class _MerchantDashboardViewState extends State<MerchantDashboardView>
   int touchedWeeklyBarIndex = -1;
   int touchedStatusBarIndex = -1;
 
-  bool weeklyAnimComplete = false;
+  //bool weeklyAnimComplete = false;
   bool statusAnimComplete = false;
   
   bool isPlaying = false;
@@ -73,7 +73,7 @@ class _MerchantDashboardViewState extends State<MerchantDashboardView>
   int _weeklyType = ChartType.line;
 
   
-  Timer? _weeklyVolumeTimer;
+  
   Timer? _statusTimer;
   
 List<Timer> allDailyTimers = [];
@@ -88,10 +88,6 @@ void deactivate() {
 // ignore: must_call_super
 @override
 void dispose(){
-  
-  // _revenueTimer?.cancel();
-  // _dailyTimer?.cancel();
-  _weeklyVolumeTimer?.cancel();
   _statusTimer?.cancel();
 super.dispose(); 
   
@@ -100,12 +96,6 @@ super.dispose();
   @override
   void initState() {
     super.initState();
-    
-     _controller = AnimationController(
-      duration: const Duration(milliseconds: 1200),
-      vsync: this,
-    );
-
   }
 
 @override
@@ -355,22 +345,23 @@ Widget _buildDashboardUI(List<TransactionEntity> filteredOrders, CalendarState c
       weeklyVolumeHeights.clear();
       statusHeights.clear();
     
-      weeklyAnimComplete = statusAnimComplete =   false;
-      
+       statusAnimComplete =   false;
+      //weeklyAnimComplete = false;
       touchedWeeklyBarIndex = touchedStatusBarIndex = touchedSuccessIndex = touchedPaymentIndex = -1;
     });
   }
 
   void _startAllAnimations() {
-    _startWeeklyVolumeAnimation(context.read<OrdersBloc>().state);
+   
     _startStatusDistributionAnimation(context.read<OrdersBloc>().state);
    
   }
 
 
 bool _allAnimationsComplete () {
-  return weeklyAnimComplete &&
-   statusAnimComplete ;
+
+  //weeklyAnimComplete &&
+  return statusAnimComplete ;
  
 }
 
@@ -590,28 +581,6 @@ String getLast15DaysRange() {
   double _getChartHeight(double screenWidth) =>
       screenWidth <= 800 ? 280.0 : 320.0;
 
-  // ✅ SAME Animation methods - pass BLoC state
-  void _startWeeklyVolumeAnimation(OrdersState state) {
-    final orders = state is OrdersPaginationLoaded
-        ? state.orders
-        : <TransactionEntity>[];
-    weeklyVolumeHeights.clear();
-    final targetData = _weeklyVolumeData(orders);
-    for (int i = 0; i < targetData.length; i++) {
-    _weeklyVolumeTimer = Timer(Duration(milliseconds: 60 * i), () {
-        if (mounted) {
-          setState(() {
-            final normalizedHeight =
-                (targetData[i] / (targetData.reduce(math.max) * 1.1)) * 200;
-            weeklyVolumeHeights.add(normalizedHeight);
-            if (i == targetData.length - 1){ weeklyAnimComplete = true;
-            _checkAllAnimationsComplete();
-            }
-          });
-        }
-      });
-    }
-  }
 
   void _startStatusDistributionAnimation(OrdersState state) {
     final orders = state is OrdersPaginationLoaded
