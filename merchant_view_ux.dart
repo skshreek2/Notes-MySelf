@@ -9,6 +9,7 @@ import 'package:hdfc_merchant_app/core/util/common.dart';
 import 'package:hdfc_merchant_app/core/util/gif_progressbar.dart';
 import 'package:hdfc_merchant_app/features/dashboard/presentation/graphs/animated_daily_trend_line_chart.dart';
 import 'package:hdfc_merchant_app/features/dashboard/presentation/graphs/animated_revenueline_chart.dart';
+import 'package:hdfc_merchant_app/features/dashboard/presentation/graphs/animated_weekly_volume_bar_chart.dart';
 import 'package:hdfc_merchant_app/features/dashboard/presentation/graphs/weekly_volume_chart.dart';
 import 'package:hdfc_merchant_app/features/dashboard/presentation/widgets/failure_widget.dart';
 import 'package:hdfc_merchant_app/features/dashboard/presentation/widgets/loading_widget.dart';
@@ -252,8 +253,9 @@ Widget _buildDashboardUI(List<TransactionEntity> filteredOrders, CalendarState c
                         ? Column(
                             children: [
                               _buildChartColumn(
-                                _WeeklyVolumeBarChart(screenWidth, filteredOrders),
-                                // _RevenueLineChart(screenWidth, filteredOrders),
+                              
+                                 AnimatedWeeklyVolumeBarChart(amounts: _weeklyVolumeData(filteredOrders), dateKeys: _getDateKeys(filteredOrders), getDateLabel: _getDateLabel, height: _getChartHeight(screenWidth)),
+                               
                                 AnimatedRevenueLineChart(spots: _revenueTrendData(filteredOrders), dateKeys: _getDateKeys(filteredOrders), height: _getChartHeight(screenWidth), getDateLabel: _getDateLabel),
                               
                               ),
@@ -267,7 +269,7 @@ Widget _buildDashboardUI(List<TransactionEntity> filteredOrders, CalendarState c
                               ),
                               SizedBox(height: 20),
                               _buildChartColumn(
-                               // _DailyTrendLineChart(screenWidth, filteredOrders),
+                              
                                 AnimatedDailyTrendLineChart(spots: _dailyTransactionTrend(filteredOrders), dateKeys: _getDateKeys(filteredOrders), height: _getChartHeight(screenWidth), getDateLabel: _getDateLabel),
                                 null
                               ),
@@ -275,12 +277,13 @@ Widget _buildDashboardUI(List<TransactionEntity> filteredOrders, CalendarState c
                           )
                         : Column(
                             children: [
-                              _buildChartRow(
-                                _WeeklyVolumeBarChart(screenWidth, filteredOrders),
-                               // _RevenueLineChart(screenWidth, filteredOrders),
-                                AnimatedRevenueLineChart(spots: _revenueTrendData(filteredOrders), dateKeys: _getDateKeys(filteredOrders), height: _getChartHeight(screenWidth), getDateLabel: _getDateLabel),
-                                'Weekly Volume',
-                              ),
+                              // _buildChartRow(
+                              //  
+                              //   AnimatedWeeklyVolumeBarChart(amounts: _weeklyVolumeData(filteredOrders), dateKeys: _getDateKeys(filteredOrders), getDateLabel: _getDateLabel, height: _getChartHeight(screenWidth)),
+                              //  
+                              //   AnimatedRevenueLineChart(spots: _revenueTrendData(filteredOrders), dateKeys: _getDateKeys(filteredOrders), height: _getChartHeight(screenWidth), getDateLabel: _getDateLabel),
+                              //   'Weekly Volume',
+                              // ),
                               // _buildChartRowToggle(_buildWeeklyChart(screenWidth, filteredOrders),'Weekly Volume', _weeklyType, (newType) {
                               //   WidgetsBinding.instance.addPostFrameCallback((_) {
                               //     if (mounted) {
@@ -289,17 +292,17 @@ Widget _buildDashboardUI(List<TransactionEntity> filteredOrders, CalendarState c
                               //     });
                               //   },),
 
-                              // WeeklyVolumeChart(chartName: 'Weekly Volume', currentType: _weeklyType, onToggle: (newType) {
-                              //   WidgetsBinding.instance.addPostFrameCallback((_) {
-                              //     if(mounted){
-                              //       setState( () => _weeklyType = newType);
-                              //     }
-                              //   });
-                              // },
-                              // child: _buildWeeklyChart(screenWidth, filteredOrders),),
+                              WeeklyVolumeChart(chartName: 'Weekly Volume', currentType: _weeklyType, onToggle: (newType) {
+                                WidgetsBinding.instance.addPostFrameCallback((_) {
+                                  if(mounted){
+                                    setState( () => _weeklyType = newType);
+                                  }
+                                });
+                              },
+                              child: _buildWeeklyChart(screenWidth, filteredOrders),),
                                SizedBox(height: 30),
                               _buildChartRow(
-                               // _DailyTrendLineChart(screenWidth, filteredOrders),
+                              
                                 AnimatedDailyTrendLineChart(spots: _dailyTransactionTrend(filteredOrders), dateKeys: _getDateKeys(filteredOrders), height: _getChartHeight(screenWidth), getDateLabel: _getDateLabel),
                                null,
                                'Daily Transactions',
@@ -825,115 +828,12 @@ String getLast15DaysRange() {
     ),
   );
 
-// Widget _buildWeeklyChart(double screenWidth,
-//     List<TransactionEntity> orders) {
-//   return _weeklyType == ChartType.bar 
-//     ? _WeeklyVolumeBarChart(screenWidth, orders)    // Shows BAR chart
-//     : _RevenueLineChart( screenWidth, orders);  // Shows LINE chart
-// }
-
-  // ✅ SAME CHART WIDGETS - NOW TAKE ORDERS PARAMETER
-  Widget _WeeklyVolumeBarChart(
-    double screenWidth,
-    List<TransactionEntity> orders,
-  ) {
-    final amounts = _weeklyVolumeData(orders);
-    final maxAmount = amounts.isNotEmpty
-        ? amounts.reduce(math.max) * 1.1
-        : 500000.0;
-    final dateKeys = _getDateKeys(orders);
-
-    
-
-    return Container(
-      height: _getChartHeight(screenWidth),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Theme.of(context).dividerColor),
-      ),
-      child: Column(
-        children: [
-          SizedBox(height: 16),
-          Expanded(
-            child: TweenAnimationBuilder<double>(
-                tween: Tween(begin: 0.0, end: 1.0), 
-                duration: const Duration(milliseconds: 3000),
-                curve: Curves.easeOutBack,
-                builder: (context, progress, child) {
-                      final barGroups = List.generate(amounts.length, (index) {
-                      final animatedHeight = amounts[index] * progress;
-                      return _makeGroupData(index, animatedHeight, Colors.blue.shade600);
-                     });
-               
-            return BarChart(
-              BarChartData(
-                maxY: maxAmount,
-                minY: 0,
-                barGroups: barGroups,
-                alignment: BarChartAlignment.spaceAround,
-                gridData: FlGridData(show: true),
-                titlesData: FlTitlesData(
-                  bottomTitles: AxisTitles(
-                    axisNameWidget: Text("Date"),
-                    axisNameSize: 15,
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 42,
-                      interval: 1,
-                      getTitlesWidget: (value, meta) {
-                        final index = value.toInt();
-                        if (index < 0 || index >= dateKeys.length)
-                          return SizedBox.shrink();
-                        final day = dateKeys[index].substring(8, 10);
-                        return Padding(
-                          padding: EdgeInsets.only(top: 8),
-                          child: Text(
-                            _getDateLabel(index),
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  leftTitles: AxisTitles(
-                    axisNameWidget: Text("Amount (₹)"),
-                    axisNameSize: 15,
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 60,
-                      interval: maxAmount / 5,
-                      getTitlesWidget: (value, meta) => Padding(
-                        padding: EdgeInsets.only(right: 8),
-                        child: Text(
-                          '  ${formatVolume(value)}',
-                          style: TextStyle(fontSize: 11, color: Theme.of(context).textTheme.bodySmall?.color),
-                        ),
-                      ),
-                    ),
-                  ),
-                  rightTitles: AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                  topTitles: AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                ),
-                borderData: FlBorderData(show: false),
-              ),
-              );
-            },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+Widget _buildWeeklyChart(double screenWidth,
+    List<TransactionEntity> orders) {
+  return _weeklyType == ChartType.bar 
+    ?  AnimatedWeeklyVolumeBarChart(amounts: _weeklyVolumeData(orders), dateKeys: _getDateKeys(orders), getDateLabel: _getDateLabel, height: _getChartHeight(screenWidth))                   
+    :  AnimatedRevenueLineChart(spots: _revenueTrendData(orders), dateKeys: _getDateKeys(orders), height: _getChartHeight(screenWidth), getDateLabel: _getDateLabel);  
+}
 
   Widget _StatusDistributionBarChart(
     double screenWidth,
