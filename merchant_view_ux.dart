@@ -58,8 +58,6 @@ class _MerchantDashboardViewState extends State<MerchantDashboardView>
   // ✅ SAME Animation state - NOTHING CHANGED
   List<double> weeklyVolumeHeights = [];
   List<double> statusHeights = [];
-  List<FlSpot> revenuePoints = [];
-  List<FlSpot> dailyPoints = [];
 
   int touchedSuccessIndex = -1;
   int touchedPaymentIndex = -1;
@@ -68,14 +66,12 @@ class _MerchantDashboardViewState extends State<MerchantDashboardView>
 
   bool weeklyAnimComplete = false;
   bool statusAnimComplete = false;
-  bool revenueAnimComplete = false;
-  bool dailyAnimComplete = false;
+  
   bool isPlaying = false;
 
   int _weeklyType = ChartType.line;
 
-  Timer? _revenueTimer;
-  Timer? _dailyTimer;
+  
   Timer? _weeklyVolumeTimer;
   Timer? _statusTimer;
   
@@ -92,8 +88,8 @@ void deactivate() {
 @override
 void dispose(){
   
-  _revenueTimer?.cancel();
-  _dailyTimer?.cancel();
+  // _revenueTimer?.cancel();
+  // _dailyTimer?.cancel();
   _weeklyVolumeTimer?.cancel();
   _statusTimer?.cancel();
 super.dispose(); 
@@ -108,21 +104,12 @@ super.dispose();
       duration: const Duration(milliseconds: 1200),
       vsync: this,
     );
-    // WidgetsBinding.instance.addPostFrameCallback((_) {
-    // Future.delayed(const Duration(milliseconds: 1000), () {
-    //   if (mounted) {
-   
-    //     setState(() => isPlaying = true);
-   
-    //     _startAllAnimations();
-    //   }
-    // });
-    // });
+
   }
 
 @override
 Widget build(BuildContext context) {
-   
+   print("Inside BUILD and Buld No.#$hashCode");
   return MultiBlocProvider(
     providers: [
       BlocProvider.value(value: context.read<OrdersBloc>()),  // Existing OrdersBloc
@@ -310,6 +297,13 @@ Widget _buildDashboardUI(List<TransactionEntity> filteredOrders, CalendarState c
                               //   });
                               // },
                               // child: _buildWeeklyChart(screenWidth, filteredOrders),),
+                               SizedBox(height: 30),
+                              _buildChartRow(
+                               // _DailyTrendLineChart(screenWidth, filteredOrders),
+                                AnimatedDailyTrendLineChart(spots: _dailyTransactionTrend(filteredOrders), dateKeys: _getDateKeys(filteredOrders), height: _getChartHeight(screenWidth), getDateLabel: _getDateLabel),
+                               null,
+                               'Daily Transactions',
+                              ),
                               SizedBox(height: 30),
                               _buildChartRow(
                                 _SuccessRatePieChart(screenWidth, filteredOrders),
@@ -320,13 +314,7 @@ Widget _buildDashboardUI(List<TransactionEntity> filteredOrders, CalendarState c
                                 ),
                                 'Status Distribution',
                               ),
-                              SizedBox(height: 30),
-                              _buildChartRow(
-                               // _DailyTrendLineChart(screenWidth, filteredOrders),
-                                AnimatedDailyTrendLineChart(spots: _dailyTransactionTrend(filteredOrders), dateKeys: _getDateKeys(filteredOrders), height: _getChartHeight(screenWidth), getDateLabel: _getDateLabel),
-                               null,
-                               'Daily Transactions',
-                              ),
+                             
                             ],
                           ),
 
@@ -335,34 +323,7 @@ Widget _buildDashboardUI(List<TransactionEntity> filteredOrders, CalendarState c
                 ],
               ),
             ),
-            // ✅ SAME Play/Pause Button
-            Positioned(
-              top: 50,
-              right: 20,
-              child: GestureDetector(
-                onTap: _toggleAnimation,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: isPlaying ? Colors.red.shade400 : Colors.blue.shade400,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
-                        blurRadius: 15,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: Icon(
-                    isPlaying ? Icons.pause : Icons.play_arrow,
-                    color: Colors.white,
-                    size: 28,
-                  ),
-                ),
-              ),
-            ),
+            
           ],
         );
       },
@@ -390,9 +351,9 @@ Widget _buildDashboardUI(List<TransactionEntity> filteredOrders, CalendarState c
     setState(() {
       weeklyVolumeHeights.clear();
       statusHeights.clear();
-      revenuePoints.clear();
-      dailyPoints.clear();
-      weeklyAnimComplete = statusAnimComplete = revenueAnimComplete = dailyAnimComplete = false;
+    
+      weeklyAnimComplete = statusAnimComplete =   false;
+      
       touchedWeeklyBarIndex = touchedStatusBarIndex = touchedSuccessIndex = touchedPaymentIndex = -1;
     });
   }
@@ -400,19 +361,14 @@ Widget _buildDashboardUI(List<TransactionEntity> filteredOrders, CalendarState c
   void _startAllAnimations() {
     _startWeeklyVolumeAnimation(context.read<OrdersBloc>().state);
     _startStatusDistributionAnimation(context.read<OrdersBloc>().state);
-   // _startRevenueAnimation(context.read<OrdersBloc>().state);
-   // _startDailyAnimation(context.read<OrdersBloc>().state);
+   
   }
 
 
 bool _allAnimationsComplete () {
-
-  
-  
   return weeklyAnimComplete &&
-   statusAnimComplete &&
-   revenueAnimComplete &&
-   dailyAnimComplete;
+   statusAnimComplete ;
+ 
 }
 
 void _checkAllAnimationsComplete() {
@@ -673,57 +629,6 @@ String getLast15DaysRange() {
     }
   }
 
-  void _startRevenueAnimation(OrdersState state) {
-    final orders = state is OrdersPaginationLoaded
-        ? state.orders
-        : <TransactionEntity>[];
-    final targetPoints = _revenueTrendData(orders);
-    _revenueTimer = Timer.periodic(const Duration(milliseconds: 200), (timer) {
-      if (revenuePoints.length >= targetPoints.length) {
-        revenuePoints = List.from(targetPoints);
-        revenueAnimComplete = true;
-        _checkAllAnimationsComplete();
-        setState(() {});
-        timer.cancel();
-        return;
-      }
-      setState(() => revenuePoints.add(targetPoints[revenuePoints.length]));
-    });
-  }
-
-  void _startDailyAnimation(OrdersState state) {
-    print("Staterd DAILY animation");
-    final orders = state is OrdersPaginationLoaded
-        ? state.orders
-        : <TransactionEntity>[];
-    final targetPoints = _dailyTransactionTrend(orders);
-
-
-   final _newdailyTimer = Timer.periodic(const Duration(milliseconds: 200), (timer) {
-      if (dailyPoints.length >= targetPoints.length) {
-        dailyPoints = List.from(targetPoints);
-        dailyAnimComplete = true;
-        _checkAllAnimationsComplete();
-        setState(() {});
-        timer.cancel();
-        return;
-      }
-      setState(() => dailyPoints.add(targetPoints[dailyPoints.length]));
-    });
-
-    _dailyTimer = _newdailyTimer;
-    allDailyTimers.add(_newdailyTimer);
-
-    print("All Daily Timer Instances ${allDailyTimers.length} ===");
-    for(int i = 0; i < allDailyTimers.length; i++){
-        final t = allDailyTimers[i];
-        print('Timer $i: hashCode ${t.hashCode},'
-               'tick = ${t.tick}, '
-               'isActive = ${t.isActive}, ' );
-    }
-
-  }
-
   // ✅ ALL SAME UI METHODS - JUST PASS ORDERS
   Widget _buildActionButtons(bool isMobile) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
@@ -823,56 +728,6 @@ String getLast15DaysRange() {
       ],
     ),
   );
-
-
-// Widget _buildChartRowToggle(Widget weeklyChart, String chartName, int currentType, Function(int) onToggle) => Container(
-//     padding: const EdgeInsets.all(24),
-//     decoration: BoxDecoration(
-//       color: Theme.of(context).cardColor,
-//       borderRadius: BorderRadius.circular(20),
-//       boxShadow: [
-//         BoxShadow(
-//           color: Colors.black.withOpacity(0.1),
-//           blurRadius: 25,
-//           offset: const Offset(0, 8),
-//         ),
-//       ],
-//     ),
-//     child: Column(
-//       crossAxisAlignment: CrossAxisAlignment.start,
-//       mainAxisSize: MainAxisSize.min,
-//       children: [
-//         Row(
-//           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-//           children: [
-//           Text(
-//           chartName,
-//           style: TextStyle(
-//             fontSize: 20,
-//             fontWeight: FontWeight.w700,
-//             color: Theme.of(context).textTheme.titleLarge?.color,
-//           ),
-//         ),
-//         IconButton(onPressed: () => onToggle (1 - currentType),
-//          icon: Icon(currentType == 0 ? Icons.show_chart : Icons.bar_chart,
-//          size: 28,
-//          color: Theme.of(context).textTheme.titleLarge?.color,),
-//          tooltip: currentType == 0 ? 'Switch to Line chart' : 'Switch to Bar chart',
-//          style: IconButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5)),
-//          padding: const EdgeInsets.all(8),
-//          )
-//           ],
-//         ),
-        
-//         const SizedBox(height: 24),
-//       //  Expanded(child: weeklyChart),
-//          SizedBox(
-//         height: 300,  // Fixed height for charts
-//         child: weeklyChart,
-//       ),
-//       ],
-//     ),
-//   );
   
   Widget _buildChartColumn(Widget chart1, Widget? chart2) => Container(
     padding: const EdgeInsets.all(20),
@@ -988,10 +843,7 @@ String getLast15DaysRange() {
         : 500000.0;
     final dateKeys = _getDateKeys(orders);
 
-    // final barGroups = List.generate(amounts.length, (index) {
-    //   final animatedHeight = amounts[index];
-    //   return _makeGroupData(index, animatedHeight, Colors.blue.shade600);
-    // });
+    
 
     return Container(
       height: _getChartHeight(screenWidth),
@@ -1082,242 +934,6 @@ String getLast15DaysRange() {
       ),
     );
   }
-
-  // Widget _RevenueLineChart(double screenWidth, List<TransactionEntity> orders) {
-  //   final spots = revenuePoints.isNotEmpty ? revenuePoints : _revenueTrendData(orders);
-  //   final maxAmount = spots.isNotEmpty ? spots.map((e) => e.y).reduce(math.max) * 1.1 : 500000.0;
-  //   final dateKeys = _getDateKeys(orders);
-
-  //   return Container(
-  //     height: _getChartHeight(screenWidth),
-  //     padding: const EdgeInsets.all(24),
-  //     decoration: BoxDecoration(
-  //       color: Theme.of(context).cardColor,
-  //       borderRadius: BorderRadius.circular(16),
-  //       border: Border.all(color: Theme.of(context).dividerColor),
-  //     ),
-  //     child: Column(
-  //       children: [
-  //         SizedBox(height: 16),
-  //         Expanded(
-  //           child: TweenAnimationBuilder<double>(
-  //             tween: Tween(begin: 0.0, end: 1.0),
-  //             duration: const Duration(milliseconds: 1200),
-  //             curve: Curves.easeOutBack, 
-  //             builder: (context, progress, child) {
-  //               final maxVisibleIndex = (dateKeys.length * progress).floor();
-  //                 final visibleSpots = spots.asMap().entries.where((entry) => entry.key <= maxVisibleIndex)
-  //                       .map((entry)=> FlSpot(entry.value.x, entry.value.y)).toList();
-  //             return  LineChart(
-  //             LineChartData(
-  //               minX: 0,
-  //               maxX: (dateKeys.length - 1).toDouble(),
-  //               maxY: maxAmount,
-  //               minY: 0,
-  //               gridData: FlGridData(show: true,
-  //                     drawVerticalLine: false,
-  //                     getDrawingHorizontalLine: (value) =>
-  //                         FlLine(color: Theme.of(context).dividerColor, strokeWidth: 1),),
-  //               titlesData: FlTitlesData(
-  //                 bottomTitles: AxisTitles(
-  //                   axisNameWidget: Text("Date"),
-  //                   axisNameSize: 15,
-  //                   sideTitles: SideTitles(
-  //                     showTitles: true,
-  //                     reservedSize: 32,
-  //                     interval: 1,
-  //                     getTitlesWidget: (value, meta) {
-  //                       final index = value.toInt();
-  //                       if (index < 0 || index >= dateKeys.length){
-  //                         return SizedBox.shrink();
-  //                       }
-  //                       final day = dateKeys[index].substring(8, 10);
-  //                       return Padding(
-  //                         padding: EdgeInsets.only(top: 8),
-  //                         child: Text(
-  //                            _getDateLabel(index),
-  //                           textAlign: TextAlign.center,
-  //                           style: TextStyle(
-  //                             fontSize: 11,
-  //                             fontWeight: FontWeight.w600,
-  //                           ),
-  //                         ),
-  //                       );
-  //                     },
-  //                   ),
-  //                 ),
-  //                 leftTitles: AxisTitles(
-  //                   axisNameWidget: Text("Amount (₹)"),
-  //                   axisNameSize: 15,
-  //                   sideTitles: SideTitles(
-  //                     showTitles: true,
-  //                     reservedSize: 60,
-  //                     interval: maxAmount / 5,
-  //                     getTitlesWidget: (value, meta) => Padding(
-  //                       padding: EdgeInsets.only(right: 8),
-  //                       child: Text(
-  //                         '  ${formatVolume(value)}',
-  //                         style: TextStyle(fontSize: 11, color: Theme.of(context).textTheme.bodySmall?.color,),
-  //                       ),
-  //                     ),
-  //                   ),
-  //                 ),
-  //                 rightTitles: AxisTitles(
-  //                   sideTitles: SideTitles(showTitles: false),
-  //                 ),
-  //                 topTitles: AxisTitles(
-  //                   sideTitles: SideTitles(showTitles: false),
-  //                 ),
-  //               ),
-  //               borderData: FlBorderData(show: false),
-  //               lineBarsData: [
-  //                 LineChartBarData(
-  //                   spots: visibleSpots,
-  //                   isCurved: true,
-  //                   curveSmoothness: 0.3,
-  //                   preventCurveOverShooting: true,
-  //                   gradient: LinearGradient(
-  //                     colors: [Colors.blue.shade600, Colors.blue.shade400],
-  //                   ),
-  //                   barWidth: 3,
-  //                   dotData: FlDotData(show: true),
-  //                   belowBarData: BarAreaData(
-  //                     show: true,
-  //                     gradient: LinearGradient(
-  //                       colors: [
-  //                         Colors.blue.withOpacity(0.3),
-  //                         Colors.transparent,
-  //                       ],
-  //                     ),
-  //                   ),
-  //                 ),
-  //               ],
-  //             ),
-  //           );
-  //             }
-  //           ),
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
-
-  // ✅ BLoC VERSIONS - Pass `List<TransactionEntity> orders` parameter
-
-  // Widget _DailyTrendLineChart(
-  //   double screenWidth,
-  //   List<TransactionEntity> orders,
-  // ) {
-  //   final spots = dailyPoints.isNotEmpty
-  //       ? dailyPoints
-  //       : _dailyTransactionTrend(orders);
-  //   final maxCount = spots.isNotEmpty
-  //       ? spots.map((e) => e.y).reduce(math.max).ceil() * 1.1
-  //       : 15.0;
-  //   final dateKeys = _getDateKeys(orders);
-
-  //   return Container(
-  //     height: _getChartHeight(screenWidth),
-  //     padding: const EdgeInsets.all(24),
-  //     decoration: BoxDecoration(
-  //       color: Theme.of(context).cardColor,
-  //       borderRadius: BorderRadius.circular(16),
-  //       border: Border.all(color: Theme.of(context).dividerColor),
-  //     ),
-  //     child: Column(
-  //       children: [
-  //         // Text(
-  //         //   'Daily Transactions',
-  //         //   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-  //         // ),
-  //         SizedBox(height: 16),
-  //         Expanded(
-  //           child: LineChart(
-  //             LineChartData(
-  //               minX: 0,
-  //               maxX: (dateKeys.length - 1).toDouble(),
-  //               maxY: maxCount,
-  //               minY: 0,
-  //               gridData: FlGridData(show: true),
-  //               titlesData: FlTitlesData(
-  //                 bottomTitles: AxisTitles(
-  //                   axisNameWidget: Text("Date"),
-  //                   axisNameSize: 15,
-  //                   sideTitles: SideTitles(
-  //                     showTitles: true,
-  //                     reservedSize: 32,
-  //                     interval: 1,
-  //                     getTitlesWidget: (value, meta) {
-  //                       final index = value.toInt();
-  //                       if (index < 0 || index >= dateKeys.length)
-  //                         return SizedBox.shrink();
-  //                       final day = dateKeys[index].substring(8, 10);
-  //                       return Padding(
-  //                         padding: EdgeInsets.only(top: 8),
-  //                         child: Text(
-  //                            _getDateLabel(index),
-  //                           textAlign: TextAlign.center,
-  //                           style: TextStyle(
-  //                             fontSize: 11,
-  //                             fontWeight: FontWeight.w600,
-  //                           ),
-  //                         ),
-  //                       );
-  //                     },
-  //                   ),
-  //                 ),
-  //                 leftTitles: AxisTitles(
-  //                   axisNameWidget: Text("Transactions"),
-  //                   axisNameSize: 15,
-  //                   sideTitles: SideTitles(
-  //                     showTitles: true,
-  //                     reservedSize: 40,
-  //                     interval: (maxCount / 5),
-  //                     getTitlesWidget: (value, meta) {
-  //                       final count = value.toInt();
-  //                       return Padding(
-  //                         padding: EdgeInsets.only(right: 8),
-  //                         child: Text(
-  //                           '  $count',
-  //                           style: TextStyle(
-  //                             fontSize: 11,
-  //                             color: Theme.of(context).textTheme.bodySmall?.color,
-  //                           ),
-  //                         ),
-  //                       );
-  //                     },
-  //                   ),
-  //                 ),
-  //                 rightTitles: AxisTitles(
-  //                   sideTitles: SideTitles(showTitles: false),
-  //                 ),
-  //                 topTitles: AxisTitles(
-  //                   sideTitles: SideTitles(showTitles: false),
-  //                 ),
-  //               ),
-  //               borderData: FlBorderData(show: false),
-  //               lineBarsData: [
-  //                 LineChartBarData(
-  //                   spots: spots,
-  //                   isCurved: true,
-  //                   preventCurveOverShooting:true,
-  //                   color: Colors.purple.shade600,
-  //                   barWidth: 3,
-  //                   dotData: FlDotData(show: true),
-  //                   belowBarData: BarAreaData(
-  //                     show: true,
-  //                     color: Colors.purple.withOpacity(0.3),
-  //                   ),
-  //                 ),
-  //               ],
-  //             ),
-  //           ),
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
-
 
   Widget _StatusDistributionBarChart(
     double screenWidth,
