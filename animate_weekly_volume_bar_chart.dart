@@ -21,14 +21,18 @@ class AnimatedWeeklyVolumeBarChart extends StatelessWidget {
   });
 
   BarChartGroupData _makeGroupData(int x, double y, Color color) {
+
+    const double minimumVisibleHeight = 0.001;
+    final double barHeight = y == 0 ? minimumVisibleHeight : y;
+
     return BarChartGroupData(
       x: x,
       barRods: [
         BarChartRodData(
-          toY: y.clamp(0.0, double.infinity),
-          color: color,
-          width: 20,
-          borderRadius: BorderRadius.circular(6),
+          toY: barHeight,
+          color: y == 0 ? Colors.red : color,
+          width: y == 0 ? 8 : 20,
+          borderRadius: y == 0 ? BorderRadius.circular(2) : BorderRadius.circular(6),
         ),
       ],
     );
@@ -68,8 +72,21 @@ class AnimatedWeeklyVolumeBarChart extends StatelessWidget {
                     minY: 0,
                     barGroups: barGroups,
                     alignment: BarChartAlignment.spaceAround,
-                    gridData: FlGridData(show: true),
+                    gridData: FlGridData(show: false),
                     borderData: FlBorderData(show: false),
+                    barTouchData: BarTouchData(
+                      enabled: true,
+                      touchTooltipData: BarTouchTooltipData(
+                        getTooltipItem: (group, groupIndex, rod, rodIndex){
+                          double value = rod.toY;
+                          if(value <= 0.001){
+                            value = 0;
+                          }
+
+                          return BarTooltipItem(formatVolume(value), const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),);
+                        }
+                      )
+                    ),
                     titlesData: FlTitlesData(
                       bottomTitles: AxisTitles(
                         axisNameWidget: const Text("Date"),
@@ -80,7 +97,6 @@ class AnimatedWeeklyVolumeBarChart extends StatelessWidget {
                           interval: 1,
                           getTitlesWidget: (value, meta) {
                             final index = value.toInt();
-                            print("Value:  $value");
                             if (index < 0 || index >= chartData.dates.length) {
                               return const SizedBox.shrink();
                             }
