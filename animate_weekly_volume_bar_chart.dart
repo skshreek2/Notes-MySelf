@@ -65,14 +65,28 @@ class AnimatedWeeklyVolumeBarChart extends StatelessWidget {
                   return _makeGroupData(
                       index, animatedHeight, Colors.blue.shade600);
                 });
-
+                final yInterval = maxAmount/5;
                 return BarChart(
                   BarChartData(
                     maxY: maxAmount,
                     minY: 0,
                     barGroups: barGroups,
                     alignment: BarChartAlignment.spaceAround,
-                    gridData: FlGridData(show: false),
+                    gridData: FlGridData(show: true,
+                    horizontalInterval:yInterval,
+                    verticalInterval: 1,
+                    getDrawingHorizontalLine: (Value){
+                      return FlLine(color: Colors.grey.withOpacity(0.3), strokeWidth: 1);
+                    
+                    },
+                    getDrawingVerticalLine: (value){
+                        return FlLine(
+                          color: Colors.grey.withOpacity(0.15),
+                          strokeWidth: 1
+                        );
+                    },
+
+                     ),
                     borderData: FlBorderData(show: false),
                     barTouchData: BarTouchData(
                       enabled: true,
