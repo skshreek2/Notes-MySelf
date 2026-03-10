@@ -13,6 +13,7 @@ import 'package:hdfc_merchant_app/features/dashboard/presentation/graphs/animate
 import 'package:hdfc_merchant_app/features/dashboard/presentation/graphs/weekly_volume_chart.dart';
 import 'package:hdfc_merchant_app/features/dashboard/presentation/widgets/failure_widget.dart';
 import 'package:hdfc_merchant_app/features/dashboard/presentation/widgets/loading_widget.dart';
+import 'package:hdfc_merchant_app/features/dashboard/services/chart_service.dart';
 import 'package:hdfc_merchant_app/features/payments/bloc/orders_bloc.dart';
 import 'package:hdfc_merchant_app/features/payments/data/orders_entity.dart';
 import 'package:hdfc_merchant_app/features/payments/data/orders_repository.dart';
@@ -30,7 +31,7 @@ class MerchantDashboardScreen extends StatelessWidget {
       providers: [
         BlocProvider(
           create: (context) =>
-              OrdersBloc(repository: OrdersRepository())..add(const OrdersFetched(isDashBoard: true)),
+              OrdersBloc(repository: OrdersRepository(useMock: true))..add(const OrdersFetched(isDashBoard: true)),
         ),
         BlocProvider(
           create: (context) => CalendarCubit(),
@@ -100,7 +101,7 @@ super.dispose();
 
 @override
 Widget build(BuildContext context) {
-   print("Inside BUILD and Buld No.#$hashCode");
+   //print("Inside BUILD and Buld No.#$hashCode");
   return MultiBlocProvider(
     providers: [
       BlocProvider.value(value: context.read<OrdersBloc>()),  // Existing OrdersBloc
@@ -158,9 +159,15 @@ Widget build(BuildContext context) {
 
         // ✅ Filter orders by CalendarCubit date range
         final rawOrders = (ordersState as OrdersPaginationLoaded).orders;
+       // print("rwaOrder $rawOrders");
         final calendarState = context.watch<CalendarCubit>().state;
+        // final calendarState = CalendarState(
+        //   startDate: DateTime(2026, 01, 10),  
+        //   endDate: DateTime(2026, 01, 20),    
+        // );
         final filteredOrders = _filterOrdersByCalendar(rawOrders, calendarState);
-
+       // print("filtered Data $filteredOrders");
+      // final chartData = ChartService.getChartDat(filteredOrders,start: calendarState.startDate, end: calendarState.endDate );
         return _buildDashboardUI(filteredOrders, calendarState);
       },
     ),
@@ -174,6 +181,7 @@ List<TransactionEntity> _filterOrdersByCalendar(
   CalendarState calendarState,
 ) {
   if (calendarState.startDate == null || calendarState.endDate == null) {
+    print("calender is empty");
     return orders;  // Show all orders if no date range selected
   }
 
@@ -185,6 +193,7 @@ List<TransactionEntity> _filterOrdersByCalendar(
 
 // ✅ UPDATED: Pass filtered orders + calendar state
 Widget _buildDashboardUI(List<TransactionEntity> filteredOrders, CalendarState calendarState) {
+
   return Scaffold(
     body: LayoutBuilder(
       builder: (context, constraints) {
@@ -242,13 +251,11 @@ Widget _buildDashboardUI(List<TransactionEntity> filteredOrders, CalendarState c
                     isMobile
                         ? Column(
                             children: [
-                              _buildChartColumn(
-                              
-                                 AnimatedWeeklyVolumeBarChart(amounts: _weeklyVolumeData(filteredOrders), dateKeys: _getDateKeys(filteredOrders), getDateLabel: _getDateLabel, height: _getChartHeight(screenWidth)),
-                               
-                                AnimatedRevenueLineChart(spots: _revenueTrendData(filteredOrders), dateKeys: _getDateKeys(filteredOrders), height: _getChartHeight(screenWidth), getDateLabel: _getDateLabel),
-                              
-                              ),
+                              // _buildChartColumn(
+                              //   // AnimatedWeeklyVolumeBarChart(amounts: _weeklyVolumeData(filteredOrders), dateKeys: _getDateKeys(filteredOrders), getDateLabel: _getDateLabel, height: _getChartHeight(screenWidth)),
+                              //   AnimatedRevenueLineChart(spots: _revenueTrendData(filteredOrders), dateKeys: _getDateKeys(filteredOrders), height: _getChartHeight(screenWidth), getDateLabel: _getDateLabel),
+                              //   AnimatedRevenueLineChart(spots: _revenueTrendData(filteredOrders), dateKeys: _getDateKeys(filteredOrders), height: _getChartHeight(screenWidth), getDateLabel: _getDateLabel),
+                              //   ),
                               SizedBox(height: 20),
                               _buildChartColumn(
                                 _SuccessRatePieChart(screenWidth, filteredOrders),
@@ -259,7 +266,6 @@ Widget _buildDashboardUI(List<TransactionEntity> filteredOrders, CalendarState c
                               ),
                               SizedBox(height: 20),
                               _buildChartColumn(
-                              
                                 AnimatedDailyTrendLineChart(spots: _dailyTransactionTrend(filteredOrders), dateKeys: _getDateKeys(filteredOrders), height: _getChartHeight(screenWidth), getDateLabel: _getDateLabel),
                                 null
                               ),
@@ -268,9 +274,9 @@ Widget _buildDashboardUI(List<TransactionEntity> filteredOrders, CalendarState c
                         : Column(
                             children: [
                               // _buildChartRow(
-                              //  
+                               
                               //   AnimatedWeeklyVolumeBarChart(amounts: _weeklyVolumeData(filteredOrders), dateKeys: _getDateKeys(filteredOrders), getDateLabel: _getDateLabel, height: _getChartHeight(screenWidth)),
-                              //  
+                               
                               //   AnimatedRevenueLineChart(spots: _revenueTrendData(filteredOrders), dateKeys: _getDateKeys(filteredOrders), height: _getChartHeight(screenWidth), getDateLabel: _getDateLabel),
                               //   'Weekly Volume',
                               // ),
@@ -289,10 +295,9 @@ Widget _buildDashboardUI(List<TransactionEntity> filteredOrders, CalendarState c
                                   }
                                 });
                               },
-                              child: _buildWeeklyChart(screenWidth, filteredOrders),),
+                              child: _buildWeeklyChart(screenWidth, filteredOrders, calendarState)),
                                SizedBox(height: 30),
                               _buildChartRow(
-                              
                                 AnimatedDailyTrendLineChart(spots: _dailyTransactionTrend(filteredOrders), dateKeys: _getDateKeys(filteredOrders), height: _getChartHeight(screenWidth), getDateLabel: _getDateLabel),
                                null,
                                'Daily Transactions',
@@ -418,7 +423,11 @@ void _checkAllAnimationsComplete() {
         }
         return value;
       });
+
+      // print("Daily Data LOOP $dailyData");
     }
+
+    //print("Daily Data $dailyData");
 
     return dailyData;
   }
@@ -798,10 +807,11 @@ String getLast15DaysRange() {
   );
 
 Widget _buildWeeklyChart(double screenWidth,
-    List<TransactionEntity> orders) {
+    List<TransactionEntity> orders, CalendarState calendarState) {
   return _weeklyType == ChartType.bar 
-    ?  AnimatedWeeklyVolumeBarChart(amounts: _weeklyVolumeData(orders), dateKeys: _getDateKeys(orders), getDateLabel: _getDateLabel, height: _getChartHeight(screenWidth))                   
-    :  AnimatedRevenueLineChart(spots: _revenueTrendData(orders), dateKeys: _getDateKeys(orders), height: _getChartHeight(screenWidth), getDateLabel: _getDateLabel);  
+    ?  AnimatedWeeklyVolumeBarChart(chartData: ChartService.getChartData(orders, start: calendarState.startDate, end: calendarState.endDate), height: _getChartHeight(screenWidth),)                   
+    :  AnimatedRevenueLineChart(chartData: ChartService.getChartData(orders, start: calendarState.startDate, end: calendarState.endDate), height: _getChartHeight(screenWidth));  
+
 }
 
   Widget _StatusDistributionBarChart(
