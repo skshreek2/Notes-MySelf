@@ -75,7 +75,13 @@ class AnimatedWeeklyVolumeBarChart extends StatelessWidget {
                     gridData: FlGridData(show: true,
                     horizontalInterval:yInterval,
                     verticalInterval: 1,
-                    getDrawingHorizontalLine: (Value){
+                    drawHorizontalLine: true,
+                    drawVerticalLine: true,
+                    getDrawingHorizontalLine: (value){
+
+                      if(value == 0 || value >= maxAmount){
+                          return FlLine(color: Colors.grey.withOpacity(0.33), strokeWidth: 1.2);
+                      }   
                       return FlLine(color: Colors.grey.withOpacity(0.3), strokeWidth: 1);
                     
                     },
