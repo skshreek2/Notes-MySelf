@@ -3,17 +3,16 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:hdfc_merchant_app/core/util/common.dart';
 import 'package:hdfc_merchant_app/features/dashboard/model/chart_data.dart';
+import 'package:hdfc_merchant_app/features/dashboard/presentation/widgets/no_data_widget.dart';
 
 class AnimatedRevenueLineChart extends StatefulWidget {
   final ChartData chartData;
   final double height;
-  final String Function(int) getDateLabel;
 
   const AnimatedRevenueLineChart({
     super.key,
     required this.chartData,
     required this.height,
-    required this.getDateLabel,
   });
 
   @override
@@ -35,10 +34,7 @@ class _AnimatedRevenueLineChartState extends State<AnimatedRevenueLineChart>
       duration: const Duration(milliseconds: 3000),
     );
 
-    animation = CurvedAnimation(
-      parent: controller,
-      curve: Curves.easeOutQuart,
-    );
+    animation = CurvedAnimation(parent: controller, curve: Curves.easeOutQuart);
 
     controller.forward();
   }
@@ -49,43 +45,55 @@ class _AnimatedRevenueLineChartState extends State<AnimatedRevenueLineChart>
     super.dispose();
   }
 
-   List<FlSpot> _buildAnimatedSpots(double progress) {
-  if (widget.spots.isEmpty) return [];
+  List<FlSpot> _buildAnimatedSpots(double progress) {
+    final volumes = widget.chartData.volumes;
+    if (volumes.isEmpty) return [];
 
-  final spots = chartData.volumes;
-  final total = spots.length;
+    //final spots = widget.chartData.volumes;
+    final total = volumes.length;
 
-  final value = progress * (total - 1);
-  final index = value.floor();
-  final remainder = value - index;
+    final value = progress * (total - 1);
+    final index = value.floor();
+    final remainder = value - index;
 
-  final animatedSpots = <FlSpot>[];
+    final animatedSpots = <FlSpot>[];
 
-  // add all completed spots
-  for (int i = 0; i <= index && i < total; i++) {
-    animatedSpots.add(spots[i]);
+    // add all completed spots
+    for (int i = 0; i <= index && i < total; i++) {
+      animatedSpots.add(FlSpot(i.toDouble(), volumes[i]));
+    }
+
+    // interpolate next spot
+    if (index + 1 < total) {
+      final y1 = volumes[index];
+      final y2 = volumes[index + 1];
+
+      // final p1 = spots[index];
+      // final p2 = spots[index + 1];
+
+      final x = index + remainder;
+      final y = y1 + (y2 - y1) * remainder;
+
+      animatedSpots.add(FlSpot(x, y));
+    }
+
+    return animatedSpots;
   }
-
-  // interpolate next spot
-  if (index + 1 < total) {
-    final p1 = spots[index];
-    final p2 = spots[index + 1];
-
-    final x = p1.x + (p2.x - p1.x) * remainder;
-    final y = p1.y + (p2.y - p1.y) * remainder;
-
-    animatedSpots.add(FlSpot(x, y));
-  }
-
-  return animatedSpots;
-}
-
 
   @override
   Widget build(BuildContext context) {
-    final maxAmount = chartData.volumes.isNotEmpty
-        ? widget.spots.map((e) => e.y).reduce(math.max) * 1.1
+    final volumes = widget.chartData.volumes;
+    final dateKeys = widget.chartData.dates;
+
+    if (volumes.isEmpty || dateKeys.isEmpty) {
+      return NoDataWidget(height: widget.height);
+    }
+
+    final maxAmount = volumes.isNotEmpty
+        ? volumes.reduce(math.max) * 1.1
         : 500000.0;
+
+    final yInterval = maxAmount / 5;
 
     return Container(
       height: widget.height,
@@ -95,127 +103,147 @@ class _AnimatedRevenueLineChartState extends State<AnimatedRevenueLineChart>
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Theme.of(context).dividerColor),
       ),
-      child: AnimatedBuilder(
-        animation: animation,
-        builder: (context, child) {
-          final animatedSpots = _buildAnimatedSpots(animation.value);
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: SizedBox(
+          width: math.max(
+            MediaQuery.of(context).size.width,
+            volumes.length * 80,
+          ),
 
-          return LineChart(
-            LineChartData(
-              minX: 0,
-              maxX: (widget.dateKeys.length - 1).toDouble(),
-              minY: 0,
-              maxY: maxAmount,
+          child: AnimatedBuilder(
+            animation: animation,
+            builder: (context, child) {
+              final animatedSpots = _buildAnimatedSpots(animation.value);
 
-              gridData: FlGridData(
-                show: true,
-                drawVerticalLine: false,
-                getDrawingHorizontalLine: (value) => FlLine(
-                  color: Theme.of(context).dividerColor,
-                  strokeWidth: 1,
-                ),
-              ),
+              return LineChart(
+                LineChartData(
+                  minX: 0,
+                  maxX: (dateKeys.length - 1).toDouble(),
+                  minY: 0,
+                  maxY: maxAmount,
 
-              titlesData: FlTitlesData(
-                bottomTitles: AxisTitles(
-                  axisNameWidget: const Text("Date"),
-                  axisNameSize: 30,
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    interval: 1,
-                    reservedSize: 32,
-                    getTitlesWidget: (value, meta) {
-                      final index = value.toInt();
-
-                      if (index < 0 || index >= widget.dateKeys.length) {
-                        return const SizedBox.shrink();
-                      }
-
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Text(
-                          widget.getDateLabel(index),
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-
-                leftTitles: AxisTitles(
-                  axisNameWidget: const Text("Amount (₹)"),
-                  axisNameSize: 30,
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    reservedSize: 60,
-                    interval: maxAmount / 5,
-                    getTitlesWidget: (value, meta) {
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: Text(
-                          formatVolume(value),
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Theme.of(context)
-                                .textTheme
-                                .bodySmall
-                                ?.color,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-
-                rightTitles: const AxisTitles(
-                  sideTitles: SideTitles(showTitles: false),
-                ),
-
-                topTitles: const AxisTitles(
-                  sideTitles: SideTitles(showTitles: false),
-                ),
-              ),
-
-              borderData: FlBorderData(show: false),
-
-              lineBarsData: [
-                LineChartBarData(
-                  spots: animatedSpots,
-                  isCurved: true,
-                  curveSmoothness: 0.25,
-                  preventCurveOverShooting: true,
-
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.blue.shade600,
-                      Colors.blue.shade400,
-                    ],
-                  ),
-
-                  barWidth: 3,
-
-                  dotData: FlDotData(show: 
-                    animation.value > 0.99,
-                  ),
-
-                  belowBarData: BarAreaData(
+                  gridData: FlGridData(
                     show: true,
-                    gradient: LinearGradient(
-                      colors: [
-                        Colors.blue.withOpacity(0.3),
-                        Colors.transparent,
-                      ],
+                    horizontalInterval: yInterval,
+                    drawVerticalLine: false,
+                    getDrawingHorizontalLine: (value) => FlLine(
+                      color: Theme.of(context).dividerColor,
+                      strokeWidth: 1,
                     ),
                   ),
+
+                  titlesData: FlTitlesData(
+                    bottomTitles: AxisTitles(
+                      axisNameWidget: const Text("Date"),
+                      axisNameSize: 30,
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        interval: 1,
+                        reservedSize: 32,
+                        getTitlesWidget: (value, meta) {
+                          final index = value.toInt();
+
+                          if (index < 0 || index >= dateKeys.length) {
+                            return const SizedBox.shrink();
+                          }
+                          final dateStr = dateKeys[index];
+                          final dateLabel = formatDateGraph(dateStr);
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text(
+                              dateLabel,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+
+                    leftTitles: AxisTitles(
+                      axisNameWidget: const Text("Amount (₹)"),
+                      axisNameSize: 30,
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: 60,
+                        interval: maxAmount / 5,
+                        getTitlesWidget: (value, meta) {
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: Text(
+                              formatRupeesCompact(value.toDouble()),
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Theme.of(
+                                  context,
+                                ).textTheme.bodySmall?.color,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+
+                    rightTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+
+                    topTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                  ),
+
+                  borderData: FlBorderData(
+                    show: true,
+                    border: Border(
+                      top: BorderSide(
+                        color: Theme.of(context).dividerColor,
+                        width: 1.2,
+                      ),
+                      bottom: BorderSide(
+                        color: Theme.of(context).dividerColor,
+                        width: 1.2,
+                      ),
+                      left: BorderSide.none,
+                      right: BorderSide.none,
+                    ),
+                  ),
+
+                  lineBarsData: [
+                    LineChartBarData(
+                      spots: animatedSpots,
+                      isCurved: true,
+                      curveSmoothness: 0.25,
+                      preventCurveOverShooting: true,
+
+                      gradient: LinearGradient(
+                        colors: [Colors.blue.shade600, Colors.blue.shade400],
+                      ),
+
+                      barWidth: 3,
+
+                      dotData: FlDotData(show: animation.value > 0.99),
+
+                      belowBarData: BarAreaData(
+                        show: true,
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.blue.withOpacity(0.3),
+                            Colors.transparent,
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            duration: Duration.zero,
-          );
-        },
+                duration: Duration.zero,
+              );
+            },
+          ),
+        ),
       ),
     );
   }
