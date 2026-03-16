@@ -3,9 +3,11 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:hdfc_merchant_app/core/util/common.dart';
 import 'package:hdfc_merchant_app/features/dashboard/model/chart_data.dart';
+import 'package:hdfc_merchant_app/features/dashboard/presentation/graphs/base_chart_container.dart';
+import 'package:hdfc_merchant_app/features/dashboard/presentation/graphs/chart_animation_wrapper.dart';
 import 'package:hdfc_merchant_app/features/dashboard/presentation/widgets/no_data_widget.dart';
 
-class AnimatedWeeklyVolumeBarChart extends StatefulWidget {
+class AnimatedWeeklyVolumeBarChart extends StatelessWidget {
   final ChartData chartData;
   final double height;
 
@@ -15,70 +17,25 @@ class AnimatedWeeklyVolumeBarChart extends StatefulWidget {
     required this.height,
   });
 
-   @override
-  State<AnimatedWeeklyVolumeBarChart> createState() => _AnimateWeeklyVolumeBarChartState();
-}
-
-  BarChartGroupData _makeGroupData(int x, double y, Color color) {
-    const double minimumVisibleHeight = 0.001;
-    final double barHeight = y == 0 ? minimumVisibleHeight : y;
-
-    return BarChartGroupData(
-      x: x,
-      barRods: [
-        BarChartRodData(
-          toY: barHeight,
-          color: y == 0 ? Colors.red : color,
-          width: 20,
-          borderRadius: y == 0
-              ? BorderRadius.circular(2)
-              : BorderRadius.circular(6),
-        ),
-      ],
-    );
-  }
-
-
-  class _AnimateWeeklyVolumeBarChartState extends State<AnimatedWeeklyVolumeBarChart> with SingleTickerProviderStateMixin {
-    late AnimationController controller;
-    late Animation<double> animation;
-
-    @override 
-    void initState(){
-      super.initState();
-
-      controller = AnimationController(vsync: this, duration: chartDuration);
-      animation = CurvedAnimation(parent: controller, curve: Curves.easeInOutCubic);
-      controller.forward();
-
-    }
-
-    @override
-    void dispose(){
-      controller.dispose();
-      super.dispose();
-    }
-     @override
+  @override
   Widget build(BuildContext context) {
-    final volumes = widget.chartData.volumes;
-    final dateKeys = widget.chartData.dates;
+    final volumes = chartData.volumes;
+    final dateKeys = chartData.dates;
+    print("volumes $volumes");
+    print("Dates $dateKeys");
+    // volumes [0, 0, 0, 0, 0, 700000, 1500000, 1570000, 3100000, 4100000, 0]
+    // Dates [2026-01-10, 2026-01-11, 2026-01-12, 2026-01-13, 2026-01-14, 2026-01-15, 2026-01-16, 2026-01-17, 2026-01-18, 2026-01-19, 2026-01-20]
 
     if (volumes.isEmpty || dateKeys.isEmpty) {
-      return NoDataWidget(height: widget.height);
+      return NoDataWidget(height: height);
     }
 
     final maxAmount = volumes.isNotEmpty
         ? volumes.reduce(math.max) * 1.1
         : 500000.0;
 
-    return Container(
-      height: widget.height,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Theme.of(context).dividerColor),
-      ),
+    return BaseChartContainer(
+      height: height,
       child: Column(
         children: [
           const SizedBox(height: 16),
@@ -93,18 +50,17 @@ class AnimatedWeeklyVolumeBarChart extends StatefulWidget {
                   scrollDirection: Axis.horizontal,
                   child: SizedBox(
                     width: chartWidth,
-                    child: AnimatedBuilder(
-                      animation: animation,
-                      builder: (context, child) {
-                        final progress = animation.value;
-                        final barGroups = List.generate(volumes.length, (
-                          index,
-                        ) {
-                          final animatedHeight = volumes[index] * progress!;
-                          return _makeGroupData(
-                            index,
-                            animatedHeight,
-                            Colors.blue.shade600,
+                    child: ChartAnimationWrapper(
+                      builder: (progress) {
+                        final barGroups = List.generate(volumes.length, ( index) {
+
+                          return BarChartGroupData(x: index,
+                            barRods: [
+                              BarChartRodData(toY: volumes[index]*progress,
+                              width: 20,
+                              borderRadius: BorderRadius.circular(6),
+                              color: Colors.blue)
+                            ]
                           );
                         });
                         final yInterval = maxAmount / 5;
@@ -249,5 +205,4 @@ class AnimatedWeeklyVolumeBarChart extends StatefulWidget {
       ),
     );
   }
-
-  }
+}
