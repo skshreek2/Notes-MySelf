@@ -3,6 +3,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:hdfc_merchant_app/core/util/common.dart';
 import 'package:hdfc_merchant_app/features/dashboard/model/chart_data.dart';
+import 'package:hdfc_merchant_app/features/dashboard/presentation/graphs/chart_y_axis.dart';
 import 'package:hdfc_merchant_app/features/dashboard/presentation/widgets/no_data_widget.dart';
 
 class AnimatedRevenueLineChart extends StatefulWidget {
@@ -103,7 +104,11 @@ class _AnimatedRevenueLineChartState extends State<AnimatedRevenueLineChart>
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Theme.of(context).dividerColor),
       ),
-      child: SingleChildScrollView(
+      child: Row(
+        children: [
+          ChartYAxis(maxAmount: maxAmount, interval: yInterval),
+        
+      SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: SizedBox(
           width: math.max(
@@ -163,29 +168,29 @@ class _AnimatedRevenueLineChartState extends State<AnimatedRevenueLineChart>
                       ),
                     ),
 
-                    leftTitles: AxisTitles(
-                      axisNameWidget: const Text("Amount (₹)"),
-                      axisNameSize: 30,
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 60,
-                        interval: maxAmount / 5,
-                        getTitlesWidget: (value, meta) {
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: Text(
-                              formatRupeesCompact(value.toDouble()),
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Theme.of(
-                                  context,
-                                ).textTheme.bodySmall?.color,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
+                    // leftTitles: AxisTitles(
+                    //   axisNameWidget: const Text("Amount (₹)"),
+                    //   axisNameSize: 30,
+                    //   sideTitles: SideTitles(
+                    //     showTitles: true,
+                    //     reservedSize: 60,
+                    //     interval: maxAmount / 5,
+                    //     getTitlesWidget: (value, meta) {
+                    //       return Padding(
+                    //         padding: const EdgeInsets.only(right: 8),
+                    //         child: Text(
+                    //           formatRupeesCompact(value.toDouble()),
+                    //           style: TextStyle(
+                    //             fontSize: 11,
+                    //             color: Theme.of(
+                    //               context,
+                    //             ).textTheme.bodySmall?.color,
+                    //           ),
+                    //         ),
+                    //       );
+                    //     },
+                    //   ),
+                    // ),
 
                     rightTitles: const AxisTitles(
                       sideTitles: SideTitles(showTitles: false),
@@ -245,6 +250,8 @@ class _AnimatedRevenueLineChartState extends State<AnimatedRevenueLineChart>
           ),
         ),
       ),
+      ],
+      )
     );
   }
 }
