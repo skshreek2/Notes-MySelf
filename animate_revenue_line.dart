@@ -3,7 +3,6 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:hdfc_merchant_app/core/util/common.dart';
 import 'package:hdfc_merchant_app/features/dashboard/model/chart_data.dart';
-import 'package:hdfc_merchant_app/features/dashboard/presentation/graphs/chart_y_axis.dart';
 import 'package:hdfc_merchant_app/features/dashboard/presentation/widgets/no_data_widget.dart';
 
 class AnimatedRevenueLineChart extends StatefulWidget {
@@ -32,7 +31,7 @@ class _AnimatedRevenueLineChartState extends State<AnimatedRevenueLineChart>
 
     controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 3000),
+      duration: chartDuration,
     );
 
     animation = CurvedAnimation(parent: controller, curve: Curves.easeOutQuart);
@@ -98,17 +97,13 @@ class _AnimatedRevenueLineChartState extends State<AnimatedRevenueLineChart>
 
     return Container(
       height: widget.height,
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.fromLTRB(24, 32, 24,24),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Theme.of(context).dividerColor),
       ),
-      child: Row(
-        children: [
-          ChartYAxis(maxAmount: maxAmount, interval: yInterval),
-        
-      SingleChildScrollView(
+      child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: SizedBox(
           width: math.max(
@@ -124,7 +119,7 @@ class _AnimatedRevenueLineChartState extends State<AnimatedRevenueLineChart>
               return LineChart(
                 LineChartData(
                   minX: 0,
-                  maxX: (dateKeys.length - 1).toDouble(),
+                  maxX: (dateKeys.length - 1).toDouble() + 0.3,
                   minY: 0,
                   maxY: maxAmount,
 
@@ -168,29 +163,29 @@ class _AnimatedRevenueLineChartState extends State<AnimatedRevenueLineChart>
                       ),
                     ),
 
-                    // leftTitles: AxisTitles(
-                    //   axisNameWidget: const Text("Amount (₹)"),
-                    //   axisNameSize: 30,
-                    //   sideTitles: SideTitles(
-                    //     showTitles: true,
-                    //     reservedSize: 60,
-                    //     interval: maxAmount / 5,
-                    //     getTitlesWidget: (value, meta) {
-                    //       return Padding(
-                    //         padding: const EdgeInsets.only(right: 8),
-                    //         child: Text(
-                    //           formatRupeesCompact(value.toDouble()),
-                    //           style: TextStyle(
-                    //             fontSize: 11,
-                    //             color: Theme.of(
-                    //               context,
-                    //             ).textTheme.bodySmall?.color,
-                    //           ),
-                    //         ),
-                    //       );
-                    //     },
-                    //   ),
-                    // ),
+                    leftTitles: AxisTitles(
+                      axisNameWidget: const Text("Amount (₹)"),
+                      axisNameSize: 30,
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: 60,
+                        interval: maxAmount / 5,
+                        getTitlesWidget: (value, meta) {
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: Text(
+                              formatRupeesCompact(value.toDouble()),
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Theme.of(
+                                  context,
+                                ).textTheme.bodySmall?.color,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
 
                     rightTitles: const AxisTitles(
                       sideTitles: SideTitles(showTitles: false),
@@ -250,8 +245,6 @@ class _AnimatedRevenueLineChartState extends State<AnimatedRevenueLineChart>
           ),
         ),
       ),
-      ],
-      )
     );
   }
 }
