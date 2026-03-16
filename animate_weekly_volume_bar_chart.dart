@@ -47,8 +47,8 @@ class AnimatedWeeklyVolumeBarChart extends StatefulWidget {
     void initState(){
       super.initState();
 
-      controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 3000));
-      animation = CurvedAnimation(parent: controller, curve: Curves.easeInOutBack);
+      controller = AnimationController(vsync: this, duration: chartDuration);
+      animation = CurvedAnimation(parent: controller, curve: Curves.easeInOutCubic);
       controller.forward();
 
     }
