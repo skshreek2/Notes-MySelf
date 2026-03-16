@@ -14,6 +14,7 @@ import 'package:hdfc_merchant_app/features/dashboard/presentation/graphs/weekly_
 import 'package:hdfc_merchant_app/features/dashboard/presentation/widgets/failure_widget.dart';
 import 'package:hdfc_merchant_app/features/dashboard/presentation/widgets/loading_widget.dart';
 import 'package:hdfc_merchant_app/features/dashboard/services/chart_service.dart';
+import 'package:hdfc_merchant_app/features/dashboard/services/daily_trends_service.dart';
 import 'package:hdfc_merchant_app/features/payments/bloc/orders_bloc.dart';
 import 'package:hdfc_merchant_app/features/payments/data/orders_entity.dart';
 import 'package:hdfc_merchant_app/features/payments/data/orders_repository.dart';
@@ -44,7 +45,7 @@ class MerchantDashboardScreen extends StatelessWidget {
 
 class MerchantDashboardView extends StatefulWidget {
   const MerchantDashboardView({super.key});
-  
+
   @override
   State<MerchantDashboardView> createState() => _MerchantDashboardViewState();
 }
@@ -68,7 +69,7 @@ class _MerchantDashboardViewState extends State<MerchantDashboardView>
 
   //bool weeklyAnimComplete = false;
   bool statusAnimComplete = false;
-  
+
   bool isPlaying = false;
 
   int _weeklyType = ChartType.line;
@@ -76,24 +77,24 @@ class _MerchantDashboardViewState extends State<MerchantDashboardView>
   
   
   Timer? _statusTimer;
-  
+
 List<Timer> allDailyTimers = [];
 
 @override
 void deactivate() {
-  
+
   super.deactivate();
 
- 
+
 }
 // ignore: must_call_super
 @override
 void dispose(){
   _statusTimer?.cancel();
-super.dispose(); 
-  
+super.dispose();
+
 }
-  
+
   @override
   void initState() {
     super.initState();
@@ -101,7 +102,7 @@ super.dispose();
 
 @override
 Widget build(BuildContext context) {
-   //print("Inside BUILD and Buld No.#$hashCode");
+   
   return MultiBlocProvider(
     providers: [
       BlocProvider.value(value: context.read<OrdersBloc>()),  // Existing OrdersBloc
@@ -112,8 +113,6 @@ Widget build(BuildContext context) {
         // ✅ API CALL HAPPENS HERE after date selection!
         if (calendarState.startDate != null && 
             calendarState.endDate != null ) {
-          
-          
           // ✅ TRIGGER API CALL
           context.read<OrdersBloc>().add(
             OrdersDateRangeChanged(
@@ -125,9 +124,8 @@ Widget build(BuildContext context) {
         }
       },
     child: BlocConsumer<OrdersBloc, OrdersState>(
+      buildWhen: (previous, current) => current != previous,
       listener: (context, state) {
-
-       
         // ✅ Restart animations when new data loads (UNCHANGED)
         if (state is OrdersPaginationLoaded && !isPlaying) {
           Future.delayed(const Duration(milliseconds: 100), () {
@@ -157,16 +155,17 @@ Widget build(BuildContext context) {
           return Failurewidget(errorMessage: ordersState.message);
         }
 
+       // final calendarState = context.watch<CalendarCubit>().state;
         // ✅ Filter orders by CalendarCubit date range
         final rawOrders = (ordersState as OrdersPaginationLoaded).orders;
-       // print("rwaOrder $rawOrders");
-        final calendarState = context.watch<CalendarCubit>().state;
-        // final calendarState = CalendarState(
-        //   startDate: DateTime(2026, 01, 10),  
-        //   endDate: DateTime(2026, 01, 20),    
-        // );
+      
+      // final calendarState = context.watch<CalendarCubit>().state;
+        final calendarState = CalendarState(
+          startDate: DateTime(2026, 01, 10),  
+          endDate: DateTime(2026, 01, 20),    
+        );
         final filteredOrders = _filterOrdersByCalendar(rawOrders, calendarState);
-       // print("filtered Data $filteredOrders");
+       
       // final chartData = ChartService.getChartDat(filteredOrders,start: calendarState.startDate, end: calendarState.endDate );
         return _buildDashboardUI(filteredOrders, calendarState);
       },
@@ -181,7 +180,7 @@ List<TransactionEntity> _filterOrdersByCalendar(
   CalendarState calendarState,
 ) {
   if (calendarState.startDate == null || calendarState.endDate == null) {
-    print("calender is empty");
+   
     return orders;  // Show all orders if no date range selected
   }
 
@@ -199,7 +198,7 @@ Widget _buildDashboardUI(List<TransactionEntity> filteredOrders, CalendarState c
       builder: (context, constraints) {
         final screenWidth = constraints.maxWidth;
         final isMobile = screenWidth <= 800;
-
+         
         return Stack(
           children: [
             SingleChildScrollView(
@@ -251,11 +250,10 @@ Widget _buildDashboardUI(List<TransactionEntity> filteredOrders, CalendarState c
                     isMobile
                         ? Column(
                             children: [
-                              // _buildChartColumn(
-                              //   // AnimatedWeeklyVolumeBarChart(amounts: _weeklyVolumeData(filteredOrders), dateKeys: _getDateKeys(filteredOrders), getDateLabel: _getDateLabel, height: _getChartHeight(screenWidth)),
-                              //   AnimatedRevenueLineChart(spots: _revenueTrendData(filteredOrders), dateKeys: _getDateKeys(filteredOrders), height: _getChartHeight(screenWidth), getDateLabel: _getDateLabel),
-                              //   AnimatedRevenueLineChart(spots: _revenueTrendData(filteredOrders), dateKeys: _getDateKeys(filteredOrders), height: _getChartHeight(screenWidth), getDateLabel: _getDateLabel),
-                              //   ),
+                              _buildChartColumn(
+                                 AnimatedWeeklyVolumeBarChart(chartData: ChartService.getChartData(filteredOrders, start: calendarState.startDate, end: calendarState.endDate), height: _getChartHeight(screenWidth),),
+                                AnimatedRevenueLineChart(chartData: ChartService.getChartData(filteredOrders, start: calendarState.startDate, end: calendarState.endDate), height: _getChartHeight(screenWidth)),
+                                ),
                               SizedBox(height: 20),
                               _buildChartColumn(
                                 _SuccessRatePieChart(screenWidth, filteredOrders),
@@ -264,14 +262,15 @@ Widget _buildDashboardUI(List<TransactionEntity> filteredOrders, CalendarState c
                                   filteredOrders,
                                 ),
                               ),
-                              SizedBox(height: 20),
-                              _buildChartColumn(
-                                AnimatedDailyTrendLineChart(spots: _dailyTransactionTrend(filteredOrders), dateKeys: _getDateKeys(filteredOrders), height: _getChartHeight(screenWidth), getDateLabel: _getDateLabel),
-                                null
-                              ),
+                              // SizedBox(height: 20),
+                              // _buildChartColumn(
+                              //   AnimatedDailyTrendLineChart(spots: _dailyTransactionTrend(filteredOrders), dateKeys: _getDateKeys(filteredOrders), height: _getChartHeight(screenWidth), getDateLabel: _getDateLabel),
+                              //   null
+                              // ),
                             ],
                           )
                         : Column(
+                          
                             children: [
                               // _buildChartRow(
                                
@@ -286,19 +285,21 @@ Widget _buildDashboardUI(List<TransactionEntity> filteredOrders, CalendarState c
                               //       setState(() => _weeklyType = newType);
                               //       }
                               //     });
-                              //   },),
-
-                              WeeklyVolumeChart(chartName: 'Weekly Volume', currentType: _weeklyType, onToggle: (newType) {
-                                WidgetsBinding.instance.addPostFrameCallback((_) {
+                                    //   },),
+                              
+                              WeeklyVolumeChart(chartName: 'Weekly Volume', 
+                                chartData: ChartService.getChartData(filteredOrders, start: calendarState.startDate, end: calendarState.endDate),
+                                currentType: _weeklyType, onToggle: (newType) {
+                                // WidgetsBinding.instance.addPostFrameCallback((_) {
                                   if(mounted){
                                     setState( () => _weeklyType = newType);
                                   }
-                                });
-                              },
-                              child: _buildWeeklyChart(screenWidth, filteredOrders, calendarState)),
+                                // });
+                              },),
+                              // child: _buildWeeklyChart(screenWidth, filteredOrders, calendarState)),
                                SizedBox(height: 30),
                               _buildChartRow(
-                                AnimatedDailyTrendLineChart(spots: _dailyTransactionTrend(filteredOrders), dateKeys: _getDateKeys(filteredOrders), height: _getChartHeight(screenWidth), getDateLabel: _getDateLabel),
+                                AnimatedDailyTrendLineChart(dailyData: DailyTrnedsService.getDailyTrendsData(filteredOrders, calendarState.startDate, calendarState.endDate), height: _getChartHeight(screenWidth)),
                                null,
                                'Daily Transactions',
                               ),
@@ -423,11 +424,7 @@ void _checkAllAnimationsComplete() {
         }
         return value;
       });
-
-      // print("Daily Data LOOP $dailyData");
     }
-
-    //print("Daily Data $dailyData");
 
     return dailyData;
   }
@@ -808,6 +805,8 @@ String getLast15DaysRange() {
 
 Widget _buildWeeklyChart(double screenWidth,
     List<TransactionEntity> orders, CalendarState calendarState) {
+
+     
   return _weeklyType == ChartType.bar 
     ?  AnimatedWeeklyVolumeBarChart(chartData: ChartService.getChartData(orders, start: calendarState.startDate, end: calendarState.endDate), height: _getChartHeight(screenWidth),)                   
     :  AnimatedRevenueLineChart(chartData: ChartService.getChartData(orders, start: calendarState.startDate, end: calendarState.endDate), height: _getChartHeight(screenWidth));  
