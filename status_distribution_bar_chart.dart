@@ -49,14 +49,12 @@ class _StatusDistributionBarChartState extends State<StatusDistributionBarChart>
         x: x,
         barRods: [
           BarChartRodData(
-            toY: y.clamp(0.0, 1.0),
+            toY: y * _animation.value,
             color: color,
             width: 22,
             borderRadius: BorderRadius.circular(6),
              backDrawRodData: null,
-             rodStackItems: [
-              BarChartRodStackItem( toY: y * _animation.value, color: color,)
-             ]
+             
           ),
         ],
       );
@@ -70,6 +68,8 @@ class _StatusDistributionBarChartState extends State<StatusDistributionBarChart>
     ];
     final statusLabels = ['Success', 'Pending', 'Failed'];
     final statusDistributionData = statusDistribution(widget.orders);
+
+    final data = statusDistributionData.map((e) => e.clamp(0, 100)).toList();
 
     final barGroups = List.generate(
       statusDistributionData.length,
@@ -104,6 +104,8 @@ class _StatusDistributionBarChartState extends State<StatusDistributionBarChart>
           Expanded(
             child: BarChart(
               BarChartData(
+                maxY: 100,
+                alignment: BarChartAlignment.spaceAround,
                 barTouchData: BarTouchData(
                   enabled: true,
                   touchCallback: (event, response) {
@@ -137,22 +139,42 @@ class _StatusDistributionBarChartState extends State<StatusDistributionBarChart>
                     },
                   ),
                 ),
-                alignment: BarChartAlignment.spaceAround,
+               
                 borderData: FlBorderData(show: false),
-                gridData: FlGridData(show: false),
+                gridData: FlGridData(show: true),
                 titlesData: FlTitlesData(
                   leftTitles: AxisTitles(
-                    axisNameWidget: Padding(padding: const EdgeInsets.only(bottom: 8),
-                    child: Text("Percentage", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),),),
+                    axisNameWidget: const Padding(padding: const EdgeInsets.only(bottom: 8),
+                    child: Text("Percentage", style: TextStyle(fontSize: 12),),),
+                    
                     sideTitles: SideTitles(
                       showTitles: true,
                       reservedSize: 30,
-                      interval: 0.25,
+                      interval: 25,
                       getTitlesWidget: (value, meta){
-                        return Text('${(value * 100).round()}%',
+                        return Text('${(value.toInt())}%',
                         style: TextStyle(fontSize: 11, color: Colors.grey[600]),);
                       },
                     )
+                  ),
+
+                  bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        getTitlesWidget: (value, meta) {
+                          return Padding(padding: const EdgeInsets.only(top: 6),
+                              child: Text(statusLabels[value.toInt()],
+                              style: const TextStyle(fontSize: 12),
+                              ),
+                          );
+                        }
+                      ),
+                  ),
+                  topTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)
+                  ),
+                  rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false)
                   )
                 ),
 
