@@ -10,6 +10,8 @@ import 'package:hdfc_merchant_app/core/util/gif_progressbar.dart';
 import 'package:hdfc_merchant_app/features/dashboard/presentation/graphs/animated_daily_trend_line_chart.dart';
 import 'package:hdfc_merchant_app/features/dashboard/presentation/graphs/animated_revenueline_chart.dart';
 import 'package:hdfc_merchant_app/features/dashboard/presentation/graphs/animated_weekly_volume_bar_chart.dart';
+import 'package:hdfc_merchant_app/features/dashboard/presentation/graphs/status_distribution_bar_chart.dart';
+import 'package:hdfc_merchant_app/features/dashboard/presentation/graphs/success_rate_pie_chart.dart';
 import 'package:hdfc_merchant_app/features/dashboard/presentation/graphs/weekly_volume_chart.dart';
 import 'package:hdfc_merchant_app/features/dashboard/presentation/widgets/failure_widget.dart';
 import 'package:hdfc_merchant_app/features/dashboard/presentation/widgets/loading_widget.dart';
@@ -102,7 +104,7 @@ super.dispose();
 
 @override
 Widget build(BuildContext context) {
-   
+   print("Parent BUILD $hashCode");
   return MultiBlocProvider(
     providers: [
       BlocProvider.value(value: context.read<OrdersBloc>()),  // Existing OrdersBloc
@@ -192,7 +194,10 @@ List<TransactionEntity> _filterOrdersByCalendar(
 
 // ✅ UPDATED: Pass filtered orders + calendar state
 Widget _buildDashboardUI(List<TransactionEntity> filteredOrders, CalendarState calendarState) {
-
+ final chartData =  ChartService.getChartData(filteredOrders, start: calendarState.startDate, end: calendarState.endDate);
+ //print("filteredOrders $filteredOrders");
+ //print("chartData Volumes ${chartData.volumes}" );
+                            
   return Scaffold(
     body: LayoutBuilder(
       builder: (context, constraints) {
@@ -250,30 +255,40 @@ Widget _buildDashboardUI(List<TransactionEntity> filteredOrders, CalendarState c
                     isMobile
                         ? Column(
                             children: [
-                              _buildChartColumn(
-                                 AnimatedWeeklyVolumeBarChart(chartData: ChartService.getChartData(filteredOrders, start: calendarState.startDate, end: calendarState.endDate), height: _getChartHeight(screenWidth),),
-                                AnimatedRevenueLineChart(chartData: ChartService.getChartData(filteredOrders, start: calendarState.startDate, end: calendarState.endDate), height: _getChartHeight(screenWidth)),
-                                ),
+                              // _buildChartColumn(
+                              //    AnimatedWeeklyVolumeBarChart(chartData: ChartService.getChartData(filteredOrders, start: calendarState.startDate, end: calendarState.endDate), height: _getChartHeight(screenWidth),),
+                              //   AnimatedRevenueLineChart(chartData: ChartService.getChartData(filteredOrders, start: calendarState.startDate, end: calendarState.endDate), height: _getChartHeight(screenWidth)),
+                              //   ),
+                               WeeklyVolumeChart(chartName: 'Weekly Volume', 
+                                chartData: chartData,
+                                currentType: _weeklyType, onToggle: (newType) {
+                                // WidgetsBinding.instance.addPostFrameCallback((_) {
+                                  if(mounted){
+                                    setState( () => _weeklyType = newType);
+                                  }
+                                // });
+                              },),
                               SizedBox(height: 20),
                               _buildChartColumn(
-                                _SuccessRatePieChart(screenWidth, filteredOrders),
-                                _StatusDistributionBarChart(
-                                  screenWidth,
-                                  filteredOrders,
-                                ),
+                               // _SuccessRatePieChart(screenWidth, filteredOrders),
+                               SuccessRatePieChart(height: _getChartHeight(screenWidth), orders: filteredOrders, dateRange: dateRangeasStr(calendarState.startDate, calendarState.endDate)),
+                                // _StatusDistributionBarChart(
+                                //   screenWidth,
+                                //   filteredOrders,
+                                // ),
+                                 StatusDistributionBarChart(height: _getChartHeight(screenWidth), orders: filteredOrders, dateRange: dateRangeasStr(calendarState.startDate, calendarState.endDate)),
+                             
                               ),
-                              // SizedBox(height: 20),
-                              // _buildChartColumn(
-                              //   AnimatedDailyTrendLineChart(spots: _dailyTransactionTrend(filteredOrders), dateKeys: _getDateKeys(filteredOrders), height: _getChartHeight(screenWidth), getDateLabel: _getDateLabel),
-                              //   null
-                              // ),
+                               SizedBox(height: 20),
+                               _buildChartColumn(
+                                 AnimatedDailyTrendLineChart(dailyData: DailyTrnedsService.getDailyTrendsData(filteredOrders, calendarState.startDate, calendarState.endDate), height: _getChartHeight(screenWidth)),
+                                 null
+                               ),
                             ],
                           )
                         : Column(
-                          
                             children: [
                               // _buildChartRow(
-                               
                               //   AnimatedWeeklyVolumeBarChart(amounts: _weeklyVolumeData(filteredOrders), dateKeys: _getDateKeys(filteredOrders), getDateLabel: _getDateLabel, height: _getChartHeight(screenWidth)),
                                
                               //   AnimatedRevenueLineChart(spots: _revenueTrendData(filteredOrders), dateKeys: _getDateKeys(filteredOrders), height: _getChartHeight(screenWidth), getDateLabel: _getDateLabel),
@@ -286,9 +301,8 @@ Widget _buildDashboardUI(List<TransactionEntity> filteredOrders, CalendarState c
                               //       }
                               //     });
                                     //   },),
-                              
-                              WeeklyVolumeChart(chartName: 'Weekly Volume', 
-                                chartData: ChartService.getChartData(filteredOrders, start: calendarState.startDate, end: calendarState.endDate),
+                             WeeklyVolumeChart(chartName: 'Weekly Volume', 
+                                chartData: chartData,
                                 currentType: _weeklyType, onToggle: (newType) {
                                 // WidgetsBinding.instance.addPostFrameCallback((_) {
                                   if(mounted){
@@ -305,12 +319,11 @@ Widget _buildDashboardUI(List<TransactionEntity> filteredOrders, CalendarState c
                               ),
                               SizedBox(height: 30),
                               _buildChartRow(
-                                _SuccessRatePieChart(screenWidth, filteredOrders),
+                                //_SuccessRatePieChart(screenWidth, filteredOrders),
+                                SuccessRatePieChart(height: _getChartHeight(screenWidth), orders: filteredOrders, dateRange: dateRangeasStr(calendarState.startDate, calendarState.endDate)),
                                 // _PaymentMethodPieChart(screenWidth),
-                                _StatusDistributionBarChart(
-                                  screenWidth,
-                                  filteredOrders,
-                                ),
+                               // _StatusDistributionBarChart(screenWidth, filteredOrders,),
+                                StatusDistributionBarChart(height: _getChartHeight(screenWidth), orders: filteredOrders, dateRange: dateRangeasStr(calendarState.startDate, calendarState.endDate)),
                                 'Status Distribution',
                               ),
                              
