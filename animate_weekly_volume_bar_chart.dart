@@ -21,8 +21,8 @@ class AnimatedWeeklyVolumeBarChart extends StatelessWidget {
   Widget build(BuildContext context) {
     final volumes = chartData.volumes;
     final dateKeys = chartData.dates;
-    print("volumes $volumes");
-    print("Dates $dateKeys");
+    // print("volumes $volumes");
+    // print("Dates $dateKeys");
     // volumes [0, 0, 0, 0, 0, 700000, 1500000, 1570000, 3100000, 4100000, 0]
     // Dates [2026-01-10, 2026-01-11, 2026-01-12, 2026-01-13, 2026-01-14, 2026-01-15, 2026-01-16, 2026-01-17, 2026-01-18, 2026-01-19, 2026-01-20]
 
@@ -33,7 +33,8 @@ class AnimatedWeeklyVolumeBarChart extends StatelessWidget {
     final maxAmount = volumes.isNotEmpty
         ? volumes.reduce(math.max) * 1.1
         : 500000.0;
-
+  // print("maxAmount $maxAmount");
+    
     return BaseChartContainer(
       height: height,
       child: Column(
@@ -52,11 +53,13 @@ class AnimatedWeeklyVolumeBarChart extends StatelessWidget {
                     width: chartWidth,
                     child: ChartAnimationWrapper(
                       builder: (progress) {
-                        final barGroups = List.generate(volumes.length, ( index) {
+                        
+                        final barGroups = List.generate(volumes.length, (index) {
 
                           return BarChartGroupData(x: index,
                             barRods: [
-                              BarChartRodData(toY: volumes[index]*progress,
+                              BarChartRodData(
+                              toY: volumes[index] * progress,
                               width: 20,
                               borderRadius: BorderRadius.circular(6),
                               color: Colors.blue)
@@ -64,6 +67,8 @@ class AnimatedWeeklyVolumeBarChart extends StatelessWidget {
                           );
                         });
                         final yInterval = maxAmount / 5;
+
+                        // print("barGroups $barGroups");
                         return BarChart(
                           BarChartData(
                             maxY: maxAmount,
