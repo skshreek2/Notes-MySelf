@@ -233,9 +233,7 @@ class _DetailedTransactionChartState extends State<DetailedTransactionChart>
                                   getTitlesWidget: (value, meta) {
                                     final intLabel = value.toInt();
                                     return Padding(
-                                      padding: const EdgeInsets.only(
-                                        right: 8.0,
-                                      ),
+                                      padding: const EdgeInsets.only(right: 6),
                                       child: Text(
                                         '$intLabel',
                                         style: TextStyle(
