@@ -30,8 +30,16 @@ class HorizontalBarChartPage extends StatefulWidget {
 
 class _HorizontalBarChartPageState extends State<HorizontalBarChartPage> {
   static const _labels = ['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon'];
-  static const _values = <double>[42, 28, 56, 35, 48];
-  static const _maxY = 60.0;
+  /// Amounts in **crores** (1 Cr = 1e7) for chart scale / bar height.
+  static const _values = <double>[4.2, 28.95, 235, 0.56, 305.5];
+  static const _maxY = 320.0;
+
+  static String _formatCr(double v) {
+    var s = v.toStringAsFixed(2);
+    s = s.replaceFirst(RegExp(r'0+$'), '');
+    s = s.replaceFirst(RegExp(r'\.$'), '');
+    return s;
+  }
 
   /// When false, bars use `toY: 0` so the next build animates outward (reads as horizontal growth with rotation).
   bool _showValues = false;
@@ -93,13 +101,12 @@ class _HorizontalBarChartPageState extends State<HorizontalBarChartPage> {
                   titlesData: FlTitlesData(
                     show: true,
                     topTitles: const AxisTitles(),
-                    // With rotationQuarterTurns: 1, [rightTitles] maps to the
-                    // bottom of the screen — use it for the 0, 10, 20… value axis.
+                    // With rotationQuarterTurns: 1, [rightTitles] maps to the bottom — axis in Cr.
                     rightTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
-                        reservedSize: 28,
-                        interval: 10,
+                        reservedSize: 40,
+                        interval: 50,
                         minIncluded: true,
                         maxIncluded: true,
                         getTitlesWidget: (value, meta) {
@@ -111,10 +118,10 @@ class _HorizontalBarChartPageState extends State<HorizontalBarChartPage> {
                             meta: meta,
                             space: 4,
                             child: Text(
-                              '$v',
+                              '$v Cr',
                               style: TextStyle(
                                 color: colorScheme.onSurfaceVariant,
-                                fontSize: 12,
+                                fontSize: 11,
                               ),
                             ),
                           );
@@ -168,13 +175,25 @@ class _HorizontalBarChartPageState extends State<HorizontalBarChartPage> {
                   ),
                   barGroups: List.generate(_labels.length, (i) {
                     final y = _showValues ? _values[i] : 0.0;
+                    final endValueStyle = TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      shadows: const [
+                        Shadow(
+                          color: Colors.black38,
+                          blurRadius: 4,
+                          offset: Offset(0, 1),
+                        ),
+                      ],
+                    );
                     return BarChartGroupData(
                       x: i,
                       barRods: [
                         BarChartRodData(
                           toY: y,
                           fromY: 0,
-                          width: 14,
+                          width: 22,
                           borderRadius: const BorderRadius.only(
                             topRight: Radius.circular(6),
                             bottomRight: Radius.circular(6),
@@ -186,6 +205,14 @@ class _HorizontalBarChartPageState extends State<HorizontalBarChartPage> {
                             ],
                             begin: Alignment.centerLeft,
                             end: Alignment.centerRight,
+                          ),
+                          // Tip-anchored value; negative dy pulls the whole label into the bar
+                          // so glyphs stay on the colored rod (not past the outer tip).
+                          label: BarChartRodLabel(
+                            show: y >= _maxY * 0.02,
+                            text: '₹${_formatCr(_values[i])} Cr',
+                            style: endValueStyle,
+                            offset: const Offset(0, -24),
                           ),
                         ),
                       ],
