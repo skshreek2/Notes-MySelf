@@ -1,0 +1,125 @@
+// payment_analytics_response_model.dart
+class PaymentAnalyticsResponseModel {
+  final PaymentSummaryModel summary;
+  final List<PaymentMethodVolumeModel> paymentMethodVolume;
+  final List<PaymentMethodDistributionModel> paymentMethodDistribution;
+  final List<MonthlyTrendModel> monthlyTrend;
+  final DateTime lastUpdatedAt;
+
+  PaymentAnalyticsResponseModel({
+    required this.summary,
+    required this.paymentMethodVolume,
+    required this.paymentMethodDistribution,
+    required this.monthlyTrend,
+    required this.lastUpdatedAt,
+  });
+
+  factory PaymentAnalyticsResponseModel.fromJson(Map<String, dynamic> json) {
+    return PaymentAnalyticsResponseModel(
+      summary: PaymentSummaryModel.fromJson(json['summary'] ?? {}),
+      paymentMethodVolume: (json['paymentMethodVolume'] as List? ?? [])
+          .map((e) => PaymentMethodVolumeModel.fromJson(e))
+          .toList(),
+      paymentMethodDistribution:
+          (json['paymentMethodDistribution'] as List? ?? [])
+              .map((e) => PaymentMethodDistributionModel.fromJson(e))
+              .toList(),
+      monthlyTrend: (json['monthlyTrend'] as List? ?? [])
+          .map((e) => MonthlyTrendModel.fromJson(e))
+          .toList(),
+      lastUpdatedAt: DateTime.parse(json['lastUpdatedAt']),
+    );
+  }
+}
+
+class PaymentSummaryModel {
+  final int totalTransactions;
+  final double successRate;
+  final int refundTransactions;
+  final double totalProcessedAmount;
+  final double totalSettledAmount;
+  final double averageTicketSize;
+
+  PaymentSummaryModel({
+    required this.totalTransactions,
+    required this.successRate,
+    required this.refundTransactions,
+    required this.totalProcessedAmount,
+    required this.totalSettledAmount,
+    required this.averageTicketSize,
+  });
+
+  factory PaymentSummaryModel.fromJson(Map<String, dynamic> json) {
+    return PaymentSummaryModel(
+      totalTransactions: json['totalTransactions'] ?? 0,
+      successRate: (json['successRate'] ?? 0).toDouble(),
+      refundTransactions: json['refundTransactions'] ?? 0,
+      totalProcessedAmount: (json['totalProcessedAmount'] ?? 0).toDouble(),
+      totalSettledAmount: (json['totalSettledAmount'] ?? 0).toDouble(),
+      averageTicketSize: (json['averageTicketSize'] ?? 0).toDouble(),
+    );
+  }
+}
+
+class PaymentMethodVolumeModel {
+  final String paymentMethodCode;
+  final String paymentMethodName;
+  final int transactionCount;
+  final double amount;
+
+  PaymentMethodVolumeModel({
+    required this.paymentMethodCode,
+    required this.paymentMethodName,
+    required this.transactionCount,
+    required this.amount,
+  });
+
+  factory PaymentMethodVolumeModel.fromJson(Map<String, dynamic> json) {
+    return PaymentMethodVolumeModel(
+      paymentMethodCode: json['paymentMethodCode'] ?? '',
+      paymentMethodName: json['paymentMethodName'] ?? '',
+      transactionCount: json['transactionCount'] ?? 0,
+      amount: (json['amount'] ?? 0).toDouble(),
+    );
+  }
+}
+
+class PaymentMethodDistributionModel {
+  final String paymentMethodCode;
+  final String paymentMethodName;
+  final double percentage;
+
+  PaymentMethodDistributionModel({
+    required this.paymentMethodCode,
+    required this.paymentMethodName,
+    required this.percentage,
+  });
+
+  factory PaymentMethodDistributionModel.fromJson(Map<String, dynamic> json) {
+    return PaymentMethodDistributionModel(
+      paymentMethodCode: json['paymentMethodCode'] ?? '',
+      paymentMethodName: json['paymentMethodName'] ?? '',
+      percentage: (json['percentage'] ?? 0).toDouble(),
+    );
+  }
+}
+
+class MonthlyTrendModel {
+  final String month;
+  final int transactionCount;
+  final double amount;
+
+  MonthlyTrendModel({
+    required this.month,
+    required this.transactionCount,
+    required this.amount,
+  });
+
+  factory MonthlyTrendModel.fromJson(Map<String, dynamic> json) {
+    return MonthlyTrendModel(
+      month: json['month'] ?? '',
+      transactionCount: json['transactionCount'] ?? 0,
+      amount: (json['amount'] ?? 0).toDouble(),
+    );
+  }
+}
