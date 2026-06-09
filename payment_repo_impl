@@ -1,0 +1,25 @@
+
+class PaymentAnalyticsRepositoryImpl implements PaymentAnalyticsRepository {
+  final Dio _dio;
+
+  PaymentAnalyticsRepositoryImpl({Dio? dio})
+    : _dio = dio ?? DioProvider.create();
+
+  @override
+  Future<PaymentAnalyticsResponseModel> getPaymentAnalytics({
+    String? fromDate,
+    String? toDate,
+  }) async {
+    print("inside Implementation");
+    
+    try {
+      final response = await _dio.post(
+        '${AppConfig.fullBaseUri}/api/v1/dashboard',
+        queryParameters: {if (filter != null) 'filter': filter},
+      );
+      return PaymentAnalyticsResponseModel.fromJson(response.data);
+    } on DioException catch (e) {
+      throw Exception(e.error ?? 'Failed to load Dashboard data');
+    }
+  }
+}
