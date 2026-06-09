@@ -1,14 +1,11 @@
 
-
 class MerchantDashboardScreen extends StatefulWidget {
   const MerchantDashboardScreen({super.key});
-
 
   @override
   State<MerchantDashboardScreen> createState() =>
       _MerchantDashboardScreenState();
 }
-
 
 class _MerchantDashboardScreenState extends State<MerchantDashboardScreen>
     with TickerProviderStateMixin {
@@ -16,30 +13,24 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen>
   String _selectedMetric = 'Total Transactions';
   final TextEditingController _searchController = TextEditingController();
 
-
   late final AnimationController _entryController;
   late final List<Animation<double>> _fadeAnimations;
   late final List<Animation<Offset>> _slideAnimations;
 
-
   late final PaymentAnalyticsBloc _paymentAnalyticsBloc;
-
 
   @override
   void initState() {
     super.initState();
 
-
     _paymentAnalyticsBloc = PaymentAnalyticsBloc(
       context.read<PaymentAnalyticsRepository>(),
     )..add(LoadPaymentAnalytics(filter: 'YESTERDAY'));
-
 
     _entryController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1000),
     );
-
 
     _fadeAnimations = List.generate(5, (index) {
       return CurvedAnimation(
@@ -47,7 +38,6 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen>
         curve: Interval(0.1 * index, 0.4 + 0.1 * index, curve: Curves.easeOut),
       );
     });
-
 
     _slideAnimations = List.generate(5, (index) {
       return Tween<Offset>(
@@ -65,10 +55,8 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen>
       );
     });
 
-
     _entryController.forward();
   }
-
 
   @override
   void dispose() {
@@ -77,7 +65,6 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen>
     _entryController.dispose();
     super.dispose();
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -89,7 +76,6 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen>
     final textGrey = AppTheme.merchantTextGrey;
     final border = AppTheme.merchantBorder;
 
-
     return BlocProvider.value(
       value: _paymentAnalyticsBloc,
       child: BlocBuilder<PaymentAnalyticsBloc, PaymentAnalyticsState>(
@@ -100,15 +86,12 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen>
             );
           }
 
-
           if (state is PaymentAnalyticsError) {
             return Scaffold(body: Center(child: Text(state.message)));
           }
 
-
           if (state is PaymentAnalyticsLoaded) {
             final data = state.data;
-
 
             return Scaffold(
               body: Stack(
@@ -125,7 +108,6 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen>
                     ),
                   ),
 
-
                   Container(
                     decoration: const BoxDecoration(
                       gradient: AppTheme.merchantBgGradient,
@@ -141,13 +123,11 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen>
                           ),
                           const SizedBox(height: 28),
 
-
                           _animatedSection(
                             1,
                             _buildMetricsRow(navy, textDark, textGrey, border),
                           ),
                           const SizedBox(height: 28),
-
 
                           _animatedSection(
                             2,
@@ -163,7 +143,6 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen>
                           ),
                           const SizedBox(height: 28),
 
-
                           _animatedSection(
                             3,
                             _buildBottomRow(
@@ -175,7 +154,6 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen>
                             ),
                           ),
                           const SizedBox(height: 28),
-
 
                           _animatedSection(
                             4,
@@ -194,10 +172,98 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen>
             );
           }
 
-
           return const SizedBox.shrink();
         },
       ),
     );
 
-on change yesterday, today make api call (bloc provider)
+    
+  }
+
+  Widget _animatedSection(int index, Widget child) {
+    return FadeTransition(
+      opacity: _fadeAnimations[index],
+      child: SlideTransition(position: _slideAnimations[index], child: child),
+    );
+  }
+
+  // ─────────────────────────────────────────────
+  // HEADER: Greeting + interactive Time Filters
+  // ─────────────────────────────────────────────
+  Widget _buildHeaderRow(
+    Color navy,
+    Color textDark,
+    Color textGrey,
+    Color border,
+  ) {
+    const filters = ['Yesterday', 'Today', 'Weekly', 'Monthly', 'Custom'];
+    final textTheme = Theme.of(context).textTheme;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+
+      children: [
+        Text(
+          'Good Morning Trisha!',
+          style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+            fontSize: 28,
+            fontWeight: FontWeight.w800,
+            color: textDark,
+            letterSpacing: -0.5,
+          ),
+        ),
+        const Spacer(),
+        Container(
+          padding: const EdgeInsets.fromLTRB(4, 0, 4, 0),
+          decoration: BoxDecoration(
+            color: AppTheme.merchantCardBg,
+            borderRadius: BorderRadius.circular(100),
+            border: Border.all(color: AppTheme.merchantBorder, width: 1),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: filters.map((f) {
+              final isSelected = f == _selectedFilter;
+              return GestureDetector(
+                onTap:
+                    // () => setState(() => _selectedFilter = f)
+                    () {
+                      if (_selectedFilter == f) return;
+                      setState(() {
+                        _selectedFilter = f;
+                      });
+                      _paymentAnalyticsBloc.add(
+                        LoadPaymentAnalytics(filter: _selectedFilter),
+                      );
+                    },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? AppTheme.merchantAccent
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(100),
+                  ),
+                  child: Text(
+                    f,
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: isSelected ? Colors.white : textGrey,
+                      fontWeight: isSelected
+                          ? FontWeight.w600
+                          : FontWeight.w600,
+                      fontSize: 12,
+                      height: 1.5,
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      ],
+    );
+  }
