@@ -86,103 +86,109 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen>
     final textGrey = AppTheme.merchantTextGrey;
     final border = AppTheme.merchantBorder;
 
-      return BlocProvider<PaymentAnalyticsBloc>(
-      create: (context) => PaymentAnalyticsBloc(
-        context.read<PaymentAnalyticsRepository>(),
-      )..add(LoadPaymentAnalytics(filter: 'YESTERDAY')),
-      child: BlocBuilder(builder: (context, state){
-         if (state is PaymentAnalyticsLoading) {
-          return const Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(),
-            ),
-          );
-        }
+    return BlocProvider<PaymentAnalyticsBloc>(
+      create: (context) =>
+          PaymentAnalyticsBloc(context.read<PaymentAnalyticsRepository>())
+            ..add(LoadPaymentAnalytics(filter: 'YESTERDAY')),
+      child: BlocBuilder<PaymentAnalyticsBloc, PaymentAnalyticsState>(
+        builder: (context, state) {
+          if (state is PaymentAnalyticsLoading) {
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          }
 
-        if (state is PaymentAnalyticsError) {
-          return Scaffold(
-            body: Center(
-              child: Text(state.message),
-            ),
-          );
-        }
+          if (state is PaymentAnalyticsError) {
+            return Scaffold(body: Center(child: Text(state.message)));
+          }
 
-        if (state is PaymentAnalyticsLoaded) {
+          if (state is PaymentAnalyticsLoaded) {
+            final data = state.data;
 
-
-          final data = state.data;
-
-          return  Stack(
-      children: [
-        Container(
-          width: double.infinity,
-          height: double.infinity,
-          // decoration: const BoxDecoration(gradient: AppTheme.merchantBgGradient),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                const Color(0xFFEFF6FF).withValues(alpha: 1.0),
-                const Color(0xFFFAF5FF).withValues(alpha: 1.0),
-              ],
-            ),
-          ),
-        ),
-
-        Container(
-          decoration: const BoxDecoration(
-            gradient: AppTheme.merchantBgGradient,
-          ),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(48, 48, 48, 48),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _animatedSection(
-                  0,
-                  _buildHeaderRow(navy, textDark, textGrey, border),
-                ),
-                const SizedBox(height: 28),
-                _animatedSection(
-                  1,
-                  _buildMetricsRow(navy, textDark, textGrey, border),
-                ),
-                const SizedBox(height: 28),
-                _animatedSection(
-                  2,
-                  _buildMiddleRow(
-                    navy,
-                    accent,
-                    textDark,
-                    textGrey,
-                    border,
-                    barBg,
-                    barFill,
+            return Scaffold(
+              body: Stack(
+                children: [
+                  Container(
+                    width: double.infinity,
+                    height: double.infinity,
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Color(0xFFEFF6FF), Color(0xFFFAF5FF)],
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 28),
-                _animatedSection(
-                  3,
-                  _buildBottomRow(navy, accent, textDark, textGrey, border),
-                ),
-                const SizedBox(height: 28),
-                _animatedSection(
-                  4,
-                  _buildMerchantResourceCentre(accent, textDark, border),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
+
+                  Container(
+                    decoration: const BoxDecoration(
+                      gradient: AppTheme.merchantBgGradient,
+                    ),
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(48, 48, 48, 48),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _animatedSection(
+                            0,
+                            _buildHeaderRow(navy, textDark, textGrey, border),
+                          ),
+                          const SizedBox(height: 28),
+
+                          _animatedSection(
+                            1,
+                            _buildMetricsRow(navy, textDark, textGrey, border),
+                          ),
+                          const SizedBox(height: 28),
+
+                          _animatedSection(
+                            2,
+                            _buildMiddleRow(
+                              navy,
+                              accent,
+                              textDark,
+                              textGrey,
+                              border,
+                              barBg,
+                              barFill,
+                            ),
+                          ),
+                          const SizedBox(height: 28),
+
+                          _animatedSection(
+                            3,
+                            _buildBottomRow(
+                              navy,
+                              accent,
+                              textDark,
+                              textGrey,
+                              border,
+                            ),
+                          ),
+                          const SizedBox(height: 28),
+
+                          _animatedSection(
+                            4,
+                            _buildMerchantResourceCentre(
+                              accent,
+                              textDark,
+                              border,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          return const SizedBox.shrink();
+        },
+      ),
     );
-      }
-      
-    } )
-    );
-  }
-    
+
     // Stack(
     //   children: [
     //     Container(
