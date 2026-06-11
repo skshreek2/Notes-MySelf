@@ -170,3 +170,22 @@ class ChartItem {
     required this.label,
   });
 }
+import 'dart:math';
+
+List<double> adjustValues(List<double> values) {
+  final minValue = values.reduce(min);
+
+  // Target minimum visible size relative to dataset
+  final targetMinSize = values.reduce(max) * 0.15;
+
+  return values.map((value) {
+    if (value == minValue) {
+      return max(value, targetMinSize);
+    }
+
+    // Smooth boost for other small values
+    return value < targetMinSize
+        ? sqrt(value / minValue) * targetMinSize
+        : value;
+  }).toList();
+}
