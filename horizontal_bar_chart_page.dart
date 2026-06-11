@@ -1,3 +1,4 @@
+import 'dart:math' as math show sqrt;
 
 import 'package:hdfc_merchant_app/features/dashboard_amps/data/payment_response_model.dart';
 import 'package:intl/intl.dart';
@@ -52,8 +53,9 @@ class _HorizontalBarChartPageState extends State<HorizontalBarChartPage> {
     final entries = widget.paymentvolume.map((e) {
       return HorizontalBarEntry(
         label: e.paymentMethodName,
-        value: e.amount.toDouble(),
+        value: math.sqrt(e.amount),
         valueLabel: compactFormatter.format(e.amount),
+        sqrtval: math.sqrt(e.amount),
       );
     }).toList();
 
