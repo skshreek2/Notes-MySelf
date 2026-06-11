@@ -16,10 +16,14 @@ class _TransactionVolumeChartState extends State<TransactionVolumeChart> {
 
   @override
   Widget build(BuildContext context) {
-    const allMonths = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-    ];
+    final months = widget.volumes
+    .map((e) => e.month.substring(0, 1).toUpperCase() +
+        e.month.substring(1, 3).toLowerCase())
+    .toList();
+
+final values = widget.volumes
+    .map((e) => e.amount.toDouble())
+    .toList();
 
     final monthValueMap = <String, double>{};
 
@@ -47,7 +51,7 @@ class _TransactionVolumeChartState extends State<TransactionVolumeChart> {
             enabled: true,
             touchTooltipData: BarTouchTooltipData(
               getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                final month = allMonths[group.x.toInt()];
+                final month = months[group.x.toInt()];
                 final amount = values[group.x.toInt()];
                 return BarTooltipItem(
                   '$month\n₹${amount.toStringAsFixed(2)}',
@@ -87,7 +91,7 @@ class _TransactionVolumeChartState extends State<TransactionVolumeChart> {
                   return Padding(
                     padding: const EdgeInsets.only(top: 8),
                     child: Text(
-                      allMonths[index],
+                      months[index],
                       style: const TextStyle(
                         color: Color(0XFF94A3B8),
                         fontFamily: 'Inter',
@@ -100,7 +104,7 @@ class _TransactionVolumeChartState extends State<TransactionVolumeChart> {
               ),
             ),
           ),
-          barGroups: List.generate(allMonths.length, (index) {
+          barGroups: List.generate(months.length, (index) {
             final isTouched = touchedIndex == index;
             final isMissing = values[index] == 0;
 
