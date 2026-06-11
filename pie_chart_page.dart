@@ -53,32 +53,44 @@ class PieChartPage extends StatelessWidget {
       final item = paymentMethodDistribution[index];
       final percentage = item.percentage;
       final isSmall = percentage <= 7.0;
+      final total = paymentMethodDistribution.fold(
+        0.0,
+        (sum, item) => sum + percentage,
+      );
+
+      print("Total $total");
 
       return PieChartSectionData(
         value: percentage,
         color: chartColors[index % chartColors.length],
         radius: 75,
-        title: isSmall ? '' : '${percentage.toStringAsFixed(1)}%',
+        // title: isSmall ? '' : '${percentage.toStringAsFixed(1)}%',
         titleStyle: TextStyle(
           color: Colors.white,
           fontWeight: FontWeight.bold,
           fontSize: isSmall ? 10 : 12,
         ),
         titlePositionPercentageOffset: 0.62,
-        badgeWidget: isSmall
-            ? Transform.rotate(
-                angle: -1.57,
-                child: Text(
-                  '${percentage.toStringAsFixed(1)}%',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 10,
-                  ),
-                ),
-              )
-            : null,
-        badgePositionPercentageOffset: isSmall ? 0.78 : 0.0,
+        // badgeWidget: isSmall
+        //     ? Transform.rotate(
+        //         angle: -1.57,
+        //         child: Text(
+        //           '${percentage.toStringAsFixed(1)}%',
+        //           style: const TextStyle(
+        //             color: Colors.white,
+        //             fontWeight: FontWeight.bold,
+        //             fontSize: 10,
+        //           ),
+        //         ),
+        //       )
+        //     : null,
+        badgeWidget: PercentBadge(
+          label: '${item.percentage.toStringAsFixed(1)}%',
+        ),
+        badgePositionPercentageOffset: _badgeOffset(
+          value: item.percentage,
+          total: total,
+        ),
       );
     });
   }
