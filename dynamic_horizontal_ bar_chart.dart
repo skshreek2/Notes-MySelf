@@ -8,10 +8,12 @@ class HorizontalBarEntry {
     required this.value,
     this.color,
     this.valueLabel,
+    required this.sqrtval,
   });
 
   final String label;
   final double value;
+  final double sqrtval;
 
   /// Optional override for the in-bar text (e.g. `₹4.2 Cr`).
   final String? valueLabel;
@@ -499,9 +501,11 @@ class _DynamicHorizontalBarChartState extends State<DynamicHorizontalBarChart> {
                 endGap: widget.endGap,
               );
               // print("fits $fits");
+              // print("Y $y and minYNeeded $minYNeeded");
+              // final displayY = fits ? y : (y < minYNeeded ? minYNeeded : y);
+              final minVisiblePercent = _maxY * 0.08;
+              final displayY = y < minVisiblePercent ? minVisiblePercent : y;
               print("Y $y and minYNeeded $minYNeeded");
-              final displayY = fits ? y : (y < minYNeeded ? minYNeeded : y);
-
               final finalLabel = fits
                   ? labelText
                   : _fitTextEllipsis(
