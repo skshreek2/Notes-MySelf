@@ -1,3 +1,40 @@
+
+if (state is GenerateReportLoaded) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text('Report Generated'),
+          content: const Text(
+            'Your report generation request has been submitted successfully.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+
+                // Optional: Refresh report history
+                context.read<ReportHistoryBloc>().add(
+                  ReportHistoryFetched(
+                    fromDate: '',
+                    toDate: '',
+                    isRefresh: true,
+                  ),
+                );
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+
 import 'dart:async';
 import 'dart:developer';
 import 'dart:ui' as ui;
