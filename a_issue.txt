@@ -1,2 +1,25 @@
-Undefined name '_endDateController'.
-Try correcting the name to one that is defined, or defining the name.
+AppDropdown(
+              items: dropdownItems,
+              width: 160,
+              onChanged: (value) {
+                if (value != null) {
+                  // if (value == 'Custom') {
+                  //   _openDatePicker();
+                  //   return;
+                  // }
+                  if (value.startsWith('Custom')) {
+                    _openDatePicker();
+                    return;
+                  }
+                  final dateRange = DateRangeHelper.getDateRange(value);
+                  final startDate = dateRange.fromDate;
+                  final endDate = dateRange.toDate;
+                  context.read<AnalyticsBloc>().add(
+                    AnalyticsDateRangeChanged(startDate, endDate, value),
+                  );
+                }
+              },
+              value: dropdownValue,
+            ),
+
+dropdownValueis start with Custom then increase width
