@@ -1,2 +1,2 @@
-The getter 'previousState' isn't defined for the type 'DownloadReportLoading'.
-Try importing the library that defines 'previousState', correcting the name to the name of an existing getter, or defining a getter or field named 'previousState'
+Undefined name '_endDateController'.
+Try correcting the name to one that is defined, or defining the name.
