@@ -280,19 +280,13 @@ class _ReportsViewState extends State<ReportsView> {
                 )
               : Row(
                   children: [
-                    // Expanded(
-                    //   child: _buildFieldWithLabel(
-                    //     label: 'Report Type',
-                    //     child: _buildReportTypeDropdown(),
-                    //   ),
-                    // ),
-                    const SizedBox(width: 16),
                     Expanded(
                       child: _buildDatePickerField(
                         label: 'Start Date',
                         hint: 'DD/MM/YYYY',
                         context: context,
                         controller: _startDateController,
+                        isStartDate: true,
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -302,10 +296,11 @@ class _ReportsViewState extends State<ReportsView> {
                         hint: 'DD/MM/YYYY',
                         context: context,
                         controller: _endDateController,
+                        isStartDate: false,
+                        startDateController: _startDateController,
                       ),
                     ),
                     const SizedBox(width: 16),
-
                     Expanded(
                       child: Padding(
                         padding: const EdgeInsets.only(top: 15),
@@ -658,21 +653,24 @@ class _ReportsViewState extends State<ReportsView> {
                     TextButton(
                       onPressed: () {
                         Navigator.pop(dialogContext);
-
-                        // Optional: Refresh report history
-                        // context.read<ReportHistoryBloc>().add(
-                        //   ReportHistoryFetched(
-                        //     fromDate: '',
-                        //     toDate: '',
-                        //     isRefresh: true,
-                        //   ),
-                        // );
                       },
                       child: const Text('OK'),
                     ),
                   ],
                 );
               },
+            );
+          }
+
+          if (state is DownloadReportLoaded) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  "Report downloaded successfully",
+                  style: TextStyle(color: Colors.white),
+                ),
+                backgroundColor: Colors.green,
+              ),
             );
           }
         },
@@ -686,6 +684,24 @@ class _ReportsViewState extends State<ReportsView> {
               currentPage: state.currentPage,
               totalPages: state.totalPages,
               rowsPerPage: state.rowsPerPage,
+            );
+          } else if (state is DownloadReportLoading) {
+            return _ReportsTablePaginated(
+              reports: state.prevreportState.reports,
+              metaInfo:
+                  int.tryParse(state.prevreportState.totalElements ?? '') ?? 0,
+              currentPage: state.prevreportState.currentPage,
+              totalPages: state.prevreportState.totalPages,
+              rowsPerPage: state.prevreportState.rowsPerPage,
+            );
+          } else if (state is DownloadReportLoaded) {
+            return _ReportsTablePaginated(
+              reports: state.prevreportState.reports,
+              metaInfo:
+                  int.tryParse(state.prevreportState.totalElements ?? '') ?? 0,
+              currentPage: state.prevreportState.currentPage,
+              totalPages: state.prevreportState.totalPages,
+              rowsPerPage: state.prevreportState.rowsPerPage,
             );
           } else if (state is ReportHistoryFailure) {
             return Center(
@@ -841,9 +857,12 @@ Widget _buildDatePickerField({
   required String label,
   required String hint,
   required TextEditingController controller,
+  required bool isStartDate,
+  TextEditingController? startDateController,
 }) {
   final today = DateTime.now();
-  final startDate = today.subtract(const Duration(days: 180));
+  final last180Days = today.subtract(const Duration(days: 180));
+
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
@@ -867,21 +886,76 @@ Widget _buildDatePickerField({
         ),
         onTap: () async {
           DateTime? initialDate;
+          DateTime? minDate;
+          DateTime? maxDate;
 
           if (controller.text.isNotEmpty) {
             try {
               initialDate = DateFormat('dd/MM/yyyy').parse(controller.text);
             } catch (_) {}
           }
-          final pickedDate = await DatePickerService.showDatePickerGlobal(
+
+          if (isStartDate) {
+            minDate = last180Days;
+            maxDate = today;
+          } else {
+            DateTime? selectedStartDate;
+
+            if (startDateController != null &&
+                startDateController.text.isNotEmpty) {
+              try {
+                selectedStartDate = DateFormat(
+                  'dd/MM/yyyy',
+                ).parse(startDateController.text);
+              } catch (_) {}
+            }
+
+            if (selectedStartDate == null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Please select Start Date first')),
+              );
+              return;
+            }
+
+            minDate = selectedStartDate;
+            maxDate = today;
+
+            initialDate ??= selectedStartDate;
+
+            if (initialDate.isBefore(minDate)) {
+              initialDate = minDate;
+            }
+            if (initialDate.isAfter(maxDate)) {
+              initialDate = maxDate;
+            }
+          }
+
+          final pickedDate = await DatePickerService.showDatePickerReport(
             context: context,
-            minDate: startDate,
-            maxDate: initialDate,
+            minDate: minDate,
+            maxDate: maxDate,
             initialSelectedDate: initialDate,
+            title: isStartDate ? 'Select Start Date' : 'Select End Date',
           );
+
           if (pickedDate != null) {
             final formatted = DateFormat('dd/MM/yyyy').format(pickedDate);
             controller.text = formatted;
+
+            if (isStartDate) {
+              if (_endDateController.text.isNotEmpty) {
+                try {
+                  final endDate = DateFormat(
+                    'dd/MM/yyyy',
+                  ).parse(_endDateController.text);
+                  if (endDate.isBefore(pickedDate)) {
+                    _endDateController.clear();
+                  }
+                } catch (_) {
+                  _endDateController.clear();
+                }
+              }
+            }
           }
         },
         decoration: InputDecoration(
@@ -918,6 +992,88 @@ Widget _buildDatePickerField({
     ],
   );
 }
+// Widget _buildDatePickerField({
+//   required BuildContext context,
+//   required String label,
+//   required String hint,
+//   required TextEditingController controller,
+// }) {
+//   final today = DateTime.now();
+//   final startDate = today.subtract(const Duration(days: 180));
+//   return Column(
+//     crossAxisAlignment: CrossAxisAlignment.start,
+//     children: [
+//       Text(
+//         label,
+//         style: const TextStyle(
+//           fontFamily: 'Inter',
+//           fontWeight: FontWeight.w500,
+//           fontSize: 14,
+//           color: AppTheme.merchantNavy,
+//         ),
+//       ),
+//       const SizedBox(height: 8),
+//       TextFormField(
+//         controller: controller,
+//         readOnly: true,
+//         style: const TextStyle(
+//           fontFamily: 'Inter',
+//           fontSize: 14,
+//           color: AppTheme.merchantNavy,
+//         ),
+//         onTap: () async {
+//           DateTime? initialDate;
+
+//           if (controller.text.isNotEmpty) {
+//             try {
+//               initialDate = DateFormat('dd/MM/yyyy').parse(controller.text);
+//             } catch (_) {}
+//           }
+//           final pickedDate = await DatePickerService.showDatePickerGlobal(
+//             context: context,
+//             minDate: startDate,
+//             maxDate: initialDate,
+//             initialSelectedDate: initialDate,
+//           );
+//           if (pickedDate != null) {
+//             final formatted = DateFormat('dd/MM/yyyy').format(pickedDate);
+//             controller.text = formatted;
+//           }
+//         },
+//         decoration: InputDecoration(
+//           hintText: hint,
+//           hintStyle: const TextStyle(color: AppTheme.merchantIconGrey),
+//           suffixIcon: const Icon(
+//             Icons.calendar_today_rounded,
+//             size: 18,
+//             color: AppTheme.merchantIconGrey,
+//           ),
+//           filled: true,
+//           fillColor: Colors.white.withOpacity(0.6),
+//           contentPadding: const EdgeInsets.symmetric(
+//             horizontal: 16,
+//             vertical: 14,
+//           ),
+//           border: OutlineInputBorder(
+//             borderRadius: BorderRadius.circular(14),
+//             borderSide: const BorderSide(color: Colors.white, width: 1.5),
+//           ),
+//           enabledBorder: OutlineInputBorder(
+//             borderRadius: BorderRadius.circular(14),
+//             borderSide: const BorderSide(color: Colors.white, width: 1.5),
+//           ),
+//           focusedBorder: OutlineInputBorder(
+//             borderRadius: BorderRadius.circular(14),
+//             borderSide: const BorderSide(
+//               color: AppTheme.merchantAccent,
+//               width: 2,
+//             ),
+//           ),
+//         ),
+//       ),
+//     ],
+//   );
+// }
 
 class ReportsTable extends StatefulWidget {
   final List<ReportEntity> reports;
@@ -1260,14 +1416,21 @@ class ReportsTableState extends State<ReportsTable> {
           SizedBox(
             width: widths[5],
             child: Center(
-              child: IconButton(
-                icon: const Icon(Icons.download_rounded, size: 18),
-                onPressed: () {
-                  context.read<ReportHistoryBloc>().add(
-                    DownloadReportEvent(
-                      reportId: '${report.reportId}',
-                      scheduleName: '${report.reportName}',
-                    ),
+              child: BlocBuilder<ReportHistoryBloc, ReportHistoryState>(
+                buildWhen: (previous, current) =>
+                    current is DownloadReportLoading ||
+                    current is DownloadReportLoaded,
+                builder: (context, state) {
+                  return IconButton(
+                    icon: const Icon(Icons.download_rounded, size: 18),
+                    onPressed: () {
+                      context.read<ReportHistoryBloc>().add(
+                        DownloadReportEvent(
+                          reportId: '${report.reportId}',
+                          scheduleName: '${report.reportName}',
+                        ),
+                      );
+                    },
                   );
                 },
               ),
