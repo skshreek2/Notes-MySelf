@@ -5,6 +5,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hdfc_merchant_app/core/util/nullable_extensions.dart';
 import 'package:hdfc_merchant_app/features/payment_link/bloc/payment_link_filter_cubit.dart';
+import 'package:hdfc_merchant_app/features/payment_link/bloc/payment_link_filter_state.dart';
+import 'package:hdfc_merchant_app/shared/calender/bloc/date_picker_cubit.dart';
+import 'package:hdfc_merchant_app/shared/widgets/common_date_picker.dart';
+import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:hdfc_merchant_app/core/theme/app_theme.dart';
 import 'package:hdfc_merchant_app/features/dashboard_amps/utils/date_range.dart';
@@ -23,6 +27,57 @@ import 'create_payment_link_dialog.dart';
 class PaymentLinksScreen extends StatelessWidget {
   const PaymentLinksScreen({super.key});
 
+
+  Future<void> _openDatePicker() async {
+    final datePickerCubit = context.read<DatePickerCubit>();
+    final dashBloc = context.read<PaymentLinkHistoryBloc>();
+
+    final CommonDatePickerResult? result =
+        await showDialog<CommonDatePickerResult>(
+          context: context,
+          barrierDismissible: true,
+          builder: (dialogContext) {
+            return Dialog(
+              insetPadding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 24,
+              ),
+              backgroundColor: Colors.transparent,
+              child: SizedBox(
+                width: 320,
+                child: CommonDatePicker(
+                  onApply: (_, value) {
+                    Navigator.of(dialogContext).pop(value);
+                  },
+                ),
+              ),
+            );
+          },
+        );
+
+    if (!mounted || result == null) return;
+
+    final startDate = DateFormat('yyyy-MM-dd').format(result.startDate);
+    final endDate = DateFormat(
+      'yyyy-MM-dd',
+    ).format(result.endDate ?? result.startDate);
+
+    datePickerCubit.setDateRange(
+      DateTime.parse(startDate),
+      DateTime.parse(endDate),
+    );
+
+    // final formatter = DateFormat('dd MMM');
+    // context.read<DashboardFilterCubit>().changeDateRange(
+    //   'Custom (${formatter.format(startDate as DateTime)} - ${formatter.format(endDate as DateTime)})',
+    // );
+    final formatter = DateFormat('dd MMM');
+    context.read<PaymentLinkFilterCubit>().changeDateRange(
+      'Custom (${formatter.format(result.startDate)} - ${formatter.format(result.endDate)})',
+    );
+    dashBloc.add(LoadPaymentAnalytics(fromDate: startDate, toDate: endDate));
+  }
+
   @override
   Widget build(BuildContext context) {
     return MultiBlocProvider(
@@ -32,6 +87,7 @@ class PaymentLinksScreen extends StatelessWidget {
             final calendarState = context.read<CalendarCubit>().state;
             final bloc = PaymentLinkHistoryBloc(
               repository: PaymentLinkRepository(),
+              paymentCubit: PaymentLinkFilterCubit(),
             );
             final dateRange = DateRangeHelper.getDateRange("Today");
             final fromDate = dateRange.fromDate;
@@ -385,103 +441,128 @@ class _PaymentLinksViewState extends State<PaymentLinksView> {
           ),
         );
 
-        final statusDropdown = Container(
-          width: isMobile ? double.infinity : 160,
-          height: 46,
-          decoration: BoxDecoration(
-            color: AppTheme.merchantCardBg,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppTheme.merchantBorder, width: 2),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: _selectedStatus,
-              icon: const Icon(
-                Icons.keyboard_arrow_down_rounded,
-                color: Color(0x66000000),
-              ),
-              isExpanded: true,
-              style: TextStyle(
-                fontFamily: 'Inter',
-                fontWeight: FontWeight.w500,
-                fontSize: 14,
-                color: AppTheme.merchantTextSecondaryDarkGrey,
-                height: 1.42,
-                letterSpacing: -0.15,
-              ),
-              dropdownColor: Theme.of(context).cardColor,
-              onChanged: (value) {
-                if (value == null) return;
-                setState(() {
-                  _selectedStatus = value;
-                });
-                context.read<PaymentLinkHistoryBloc>().add(
-                  PaymentLinkHistoryStatusChanged(value),
-                );
-              },
-              items: statusItems.map((status) {
-                return DropdownMenuItem<String>(
-                  value: status,
-                  child: Text(status),
-                );
-              }).toList(),
-            ),
-          ),
-        );
+        final statusDropdown =
+            BlocBuilder<PaymentLinkFilterCubit, PaymentLinkFilterState>(
+              builder: (context, filterState) {
+                return Container(
+                  width: isMobile ? double.infinity : 160,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: AppTheme.merchantCardBg,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: AppTheme.merchantBorder,
+                      width: 2,
+                    ),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: filterState.status,
+                      icon: const Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        color: Color(0x66000000),
+                      ),
+                      isExpanded: true,
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
+                        color: AppTheme.merchantTextSecondaryDarkGrey,
+                        height: 1.42,
+                        letterSpacing: -0.15,
+                      ),
+                      dropdownColor: Theme.of(context).cardColor,
+                      onChanged: (value) {
+                        if (value == null) return;
+                        // setState(() {
+                        //   _selectedStatus = value;
+                        // });
 
-        final daysDropdown = Container(
-          width: isMobile ? double.infinity : 160,
-          height: 46,
-          decoration: BoxDecoration(
-            color: AppTheme.merchantCardBg,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppTheme.merchantBorder, width: 2),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              // value: dropdownValue,
-              value: context.read<PaymentLinkFilterCubit>().state.dateRange,
-              icon: const Icon(
-                Icons.keyboard_arrow_down_rounded,
-                color: Color(0x66000000),
-              ),
-              isExpanded: true,
-              style: TextStyle(
-                fontFamily: 'Inter',
-                fontWeight: FontWeight.w500,
-                fontSize: 14,
-                color: AppTheme.merchantTextSecondaryDarkGrey,
-                height: 1.42,
-                letterSpacing: -0.15,
-              ),
-              dropdownColor: Theme.of(context).cardColor,
-              onChanged: (value) {
-                if (value == null) return;
-                // setState(() {
-                //   _selectedDaysFilter = value;
-                // });
-
-                context.read<PaymentLinkFilterCubit>().changesDateRange(value);
-
-                final dateRange = DateRangeHelper.getDateRange(value);
-                final fromDate = dateRange.fromDate;
-                final toDate = dateRange.toDate;
-                context.read<PaymentLinkHistoryBloc>().add(
-                  PaymentLinkHistoryDateRangeChanged(
-                    fromDate: fromDate,
-                    toDate: toDate,
-                    timeFrame: value,
+                        context.read<PaymentLinkFilterCubit>().changeStatus(
+                          value,
+                        );
+                        context.read<PaymentLinkHistoryBloc>().add(
+                          PaymentLinkHistoryStatusChanged(value),
+                        );
+                      },
+                      items: statusItems.map((status) {
+                        return DropdownMenuItem<String>(
+                          value: status,
+                          child: Text(status),
+                        );
+                      }).toList(),
+                    ),
                   ),
                 );
               },
-              items: dropdownItems.map((item) {
-                return DropdownMenuItem<String>(value: item, child: Text(item));
-              }).toList(),
-            ),
-          ),
-        );
+            );
+
+        final daysDropdown =
+            BlocBuilder<PaymentLinkFilterCubit, PaymentLinkFilterState>(
+              builder: (context, filterState) {
+                return Container(
+                  width: isMobile ? double.infinity : 160,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: AppTheme.merchantCardBg,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: AppTheme.merchantBorder,
+                      width: 2,
+                    ),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      // value: dropdownValue,
+                      value: filterState.dateRange,
+                      icon: const Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        color: Color(0x66000000),
+                      ),
+                      isExpanded: true,
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
+                        color: AppTheme.merchantTextSecondaryDarkGrey,
+                        height: 1.42,
+                        letterSpacing: -0.15,
+                      ),
+                      dropdownColor: Theme.of(context).cardColor,
+                      onChanged: (value) {
+                        if (value == null) return;
+                        // setState(() {
+                        //   _selectedDaysFilter = value;
+                        // });
+
+                        context.read<PaymentLinkFilterCubit>().changesDateRange(
+                          value,
+                        );
+
+                        final dateRange = DateRangeHelper.getDateRange(value);
+                        final fromDate = dateRange.fromDate;
+                        final toDate = dateRange.toDate;
+                        context.read<PaymentLinkHistoryBloc>().add(
+                          PaymentLinkHistoryDateRangeChanged(
+                            fromDate: fromDate,
+                            toDate: toDate,
+                            timeFrame: value,
+                          ),
+                        );
+                      },
+                      items: dropdownItems.map((item) {
+                        return DropdownMenuItem<String>(
+                          value: item,
+                          child: Text(item),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                );
+              },
+            );
 
         if (isMobile) {
           return Column(
