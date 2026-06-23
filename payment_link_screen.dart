@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hdfc_merchant_app/core/util/nullable_extensions.dart';
+import 'package:hdfc_merchant_app/features/payment_link/bloc/payment_link_filter_cubit.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:hdfc_merchant_app/core/theme/app_theme.dart';
 import 'package:hdfc_merchant_app/features/dashboard_amps/utils/date_range.dart';
@@ -46,6 +47,7 @@ class PaymentLinksScreen extends StatelessWidget {
             return bloc;
           },
         ),
+        BlocProvider(create: (_) => PaymentLinkFilterCubit()),
       ],
       child: const PaymentLinksView(),
     );
