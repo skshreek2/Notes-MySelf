@@ -16,14 +16,6 @@ class HorizontalBarChartPage extends StatefulWidget {
 }
 
 class _HorizontalBarChartPageState extends State<HorizontalBarChartPage> {
-  // static const _entries = <HorizontalBarEntry>[
-  //   HorizontalBarEntry(label: 'UPI', value: 114, valueLabel: '₹114'),
-  //   HorizontalBarEntry(label: 'Credit Card', value: 128, valueLabel: '₹128'),
-  //   HorizontalBarEntry(label: 'Debit Card', value: 235, valueLabel: '₹235'),
-  //   HorizontalBarEntry(label: 'Net Banking', value: 120, valueLabel: '₹120'),
-  //   HorizontalBarEntry(label: 'Wallets', value: 305, valueLabel: '₹305'),
-  // ];
-
   int _chartGeneration = 0;
 
   void _replay() => setState(() => _chartGeneration++);
@@ -59,18 +51,17 @@ class _HorizontalBarChartPageState extends State<HorizontalBarChartPage> {
       );
     }).toList();
 
+
     final maxAmount = widget.paymentvolume
-        .map((e) => e.amount.toDouble())
+        .map((e) => math.sqrt(e.amount))
         .reduce((a, b) => a > b ? a : b);
 
-    return Container(
-      child: Expanded(
-        child: DynamicHorizontalBarChart(
-          key: ValueKey(_chartGeneration),
-          entries: entries,
-          maxY: maxAmount * 1.15,
-          valueFormatter: (v) => compactFormatter.format(v),
-        ),
+    return Expanded(
+      child: DynamicHorizontalBarChart(
+        key: ValueKey(_chartGeneration),
+        entries: entries,
+        maxY: maxAmount * 1.15,
+        valueFormatter: (v) => compactFormatter.format(v),
       ),
     );
   }
