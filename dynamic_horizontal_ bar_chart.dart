@@ -20,10 +20,6 @@ class HorizontalBarEntry {
   final Color? color;
 }
 
-/// Horizontal bar chart (fl_chart) with:
-/// - bar length proportional to [HorizontalBarEntry.value]
-/// - value label at the **right end inside** the bar
-/// - font size / inset adapted to 3-digit, 5-digit, or longer strings
 class DynamicHorizontalBarChart extends StatefulWidget {
   const DynamicHorizontalBarChart({
     super.key,
@@ -123,9 +119,6 @@ class _DynamicHorizontalBarChartState extends State<DynamicHorizontalBarChart> {
       textScaler: MediaQuery.textScalerOf(context),
       maxLines: 1,
     )..layout();
-    // final alongRaw = chartWidth * (y / _maxY) * 0.46 - endGap;
-    // final acrossRaw = chartHeight / (barCount * 2.15);
-    // return tp.width <= alongRaw * 0.72 && tp.height <= acrossRaw * 0.95;
 
     final barPixelWidth = chartWidth * (y / _maxY);
     final availableWidth = (barPixelWidth - endGap - 12).clamp(
@@ -134,36 +127,6 @@ class _DynamicHorizontalBarChartState extends State<DynamicHorizontalBarChart> {
     );
 
     return tp.width <= availableWidth;
-  }
-
-  double _labelFontSize(
-    BuildContext context, {
-    required String text,
-    required double chartWidth,
-    required double chartHeight,
-    required double y,
-    required int barCount,
-    required double endGap,
-  }) {
-    for (
-      var fs = widget.maxLabelFontSize;
-      fs >= widget.minLabelFontSize;
-      fs -= 0.5
-    ) {
-      if (_labelFits(
-        context,
-        text: text,
-        fontSize: fs,
-        chartWidth: chartWidth,
-        chartHeight: chartHeight,
-        y: y,
-        barCount: barCount,
-        endGap: endGap,
-      )) {
-        return fs;
-      }
-    }
-    return widget.minLabelFontSize;
   }
 
   double _measureTextHeight(
@@ -189,18 +152,6 @@ class _DynamicHorizontalBarChartState extends State<DynamicHorizontalBarChart> {
     fontStyle: FontStyle.normal,
     height: 1.2,
   );
-  // double _dynamicRodWidth(
-  //   BuildContext context, {
-  //   required String text,
-  //   required double baseWidth,
-  //   required TextStyle style,
-  // }) {
-  //   final textHeight = _measureTextHeight(context, text: text, style: style);
-
-  //   final requiredWidth =
-  //       textHeight + 20; // top/bottom padding for rotated label
-  //   return requiredWidth > baseWidth ? requiredWidth : baseWidth;
-  // }
 
   String _fitTextEllipsis(
     BuildContext context, {
@@ -243,39 +194,6 @@ class _DynamicHorizontalBarChartState extends State<DynamicHorizontalBarChart> {
     // if (end <= 1) return '…';
 
     return '${text.substring(0, end - 1)}';
-    // final availableWidth = (chartWidth * (y / _maxY) * 0.46 - endGap - 8).clamp(
-    //   0.0,
-    //   double.infinity,
-    // );
-
-    // if (availableWidth <= 0) return '';
-
-    // final style = TextStyle(
-    //   fontSize: fontSize,
-    //   fontWeight: FontWeight.w600,
-    //   fontFamily: 'Inter',
-    //   height: 1.5,
-    // );
-
-    // bool fits(String value) {
-    //   final painter = TextPainter(
-    //     text: TextSpan(text: value, style: style),
-    //     textDirection: TextDirection.ltr,
-    //     textScaler: MediaQuery.textScalerOf(context),
-    //     maxLines: 1,
-    //   )..layout(maxWidth: availableWidth);
-
-    //   return !painter.didExceedMaxLines;
-    // }
-
-    // if (fits(text)) return text;
-
-    // for (int i = text.length - 1; i > 0; i--) {
-    //   final candidate = '${text.substring(0, i)}…';
-    //   if (fits(candidate)) return candidate;
-    // }
-
-    // return '…';
   }
 
   double _dynamicRodWidth(
@@ -474,21 +392,7 @@ class _DynamicHorizontalBarChartState extends State<DynamicHorizontalBarChart> {
                 style: labelStyle,
                 minCharacters: 8,
               );
-              // final rodWidth = _dynamicRodWidth(
-              //   context,
-              //   text: labelText,
-              //   baseWidth: baseRodWidth,
-              //   style: labelStyle,
-              // );
-              // final fontSize = _labelFontSize(
-              //   context,
-              //   text: labelText,
-              //   chartWidth: chartW,
-              //   chartHeight: chartH,
-              //   y: y,
-              //   barCount: count,
-              //   endGap: widget.endGap,
-              // );
+
               const fontSize = 12.0;
               final fits = _labelFits(
                 context,
@@ -500,12 +404,10 @@ class _DynamicHorizontalBarChartState extends State<DynamicHorizontalBarChart> {
                 barCount: count,
                 endGap: widget.endGap,
               );
-              // print("fits $fits");
-              // print("Y $y and minYNeeded $minYNeeded");
-              // final displayY = fits ? y : (y < minYNeeded ? minYNeeded : y);
-              final minVisiblePercent = _maxY * 0.08;
-              final displayY = y < minVisiblePercent ? minVisiblePercent : y;
-              print("Y $y and minYNeeded $minYNeeded");
+
+              final minVisiblePercent = _maxY * 0.03;
+              // final displayY = y < minVisiblePercent ? minVisiblePercent : y;
+              final displayY = y == 0 ? minVisiblePercent : y;
               final finalLabel = fits
                   ? labelText
                   : _fitTextEllipsis(
@@ -516,7 +418,7 @@ class _DynamicHorizontalBarChartState extends State<DynamicHorizontalBarChart> {
                       y: displayY,
                       endGap: widget.endGap,
                     );
-              print("finalLabel $finalLabel");
+
               final barColor = entry.color ?? colorScheme.primary;
               return BarChartGroupData(
                 x: i,
@@ -540,16 +442,6 @@ class _DynamicHorizontalBarChartState extends State<DynamicHorizontalBarChart> {
                       end: Alignment.topCenter,
                     ),
                     label: BarChartRodLabel(
-                      // show: y > 0 && finalLabel.isNotEmpty,
-                      // text: finalLabel,
-                      // style: const TextStyle(
-                      //   color: Colors.black,
-                      //   fontSize: 12,
-                      //   fontFamily: 'Inter',
-                      //   fontWeight: FontWeight.w600,
-                      //   height: 1.2,
-                      // ),
-                      // offset: const Offset(-8, 0),
                       show: y > 0 && finalLabel.isNotEmpty,
                       text: finalLabel,
                       style: TextStyle(
