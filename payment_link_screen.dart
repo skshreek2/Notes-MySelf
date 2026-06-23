@@ -441,7 +441,8 @@ class _PaymentLinksViewState extends State<PaymentLinksView> {
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
-              value: dropdownValue,
+              // value: dropdownValue,
+              value: context.read<PaymentLinkFilterCubit>().state.dateRange,
               icon: const Icon(
                 Icons.keyboard_arrow_down_rounded,
                 color: Color(0x66000000),
@@ -458,9 +459,11 @@ class _PaymentLinksViewState extends State<PaymentLinksView> {
               dropdownColor: Theme.of(context).cardColor,
               onChanged: (value) {
                 if (value == null) return;
-                setState(() {
-                  _selectedDaysFilter = value;
-                });
+                // setState(() {
+                //   _selectedDaysFilter = value;
+                // });
+
+                context.read<PaymentLinkFilterCubit>().changesDateRange(value);
 
                 final dateRange = DateRangeHelper.getDateRange(value);
                 final fromDate = dateRange.fromDate;
