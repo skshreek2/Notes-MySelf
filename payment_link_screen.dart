@@ -31,28 +31,29 @@ class PaymentLinksScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
+        BlocProvider(create: (_) => PaymentLinkFilterCubit()),
         BlocProvider(
           create: (context) {
-            final calendarState = context.read<CalendarCubit>().state;
             final bloc = PaymentLinkHistoryBloc(
               repository: PaymentLinkRepository(),
               paymentCubit: PaymentLinkFilterCubit(),
             );
-            final dateRange = DateRangeHelper.getDateRange("Today");
+
+            final filter = context.read<PaymentLinkFilterCubit>().state;
+            final dateRange = DateRangeHelper.getDateRange(filter.dateRange);
             final fromDate = dateRange.fromDate;
             final toDate = dateRange.toDate;
             bloc.add(
               PaymentLinkHistoryDateRangeChanged(
                 fromDate: fromDate,
                 toDate: toDate,
-                timeFrame: calendarState.timeFrame,
+                // timeFrame: calendarState.timeFrame,
               ),
             );
 
             return bloc;
           },
         ),
-        BlocProvider(create: (_) => PaymentLinkFilterCubit()),
       ],
       child: const PaymentLinksView(),
     );
@@ -86,6 +87,7 @@ class _PaymentLinksViewState extends State<PaymentLinksView> {
   }
 
   Future<void> _openDatePicker() async {
+    debugPrint(" PAYEMTN LINK inside open date picker");
     final datePickerCubit = context.read<DatePickerCubit>();
     final dashBloc = context.read<PaymentLinkHistoryBloc>();
 
@@ -535,7 +537,8 @@ class _PaymentLinksViewState extends State<PaymentLinksView> {
                         //   _selectedDaysFilter = value;
                         // });
 
-                        if (value == 'Custom') {
+                        if (value.startsWith('Custom')) {
+                          print("Payment Link $value");
                           _openDatePicker();
                           return;
                         }
@@ -550,7 +553,7 @@ class _PaymentLinksViewState extends State<PaymentLinksView> {
                           PaymentLinkHistoryDateRangeChanged(
                             fromDate: fromDate,
                             toDate: toDate,
-                            timeFrame: value,
+                            // timeFrame: value,
                           ),
                         );
                       },
