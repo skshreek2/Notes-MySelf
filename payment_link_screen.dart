@@ -34,12 +34,11 @@ class PaymentLinksScreen extends StatelessWidget {
         BlocProvider(create: (_) => PaymentLinkFilterCubit()),
         BlocProvider(
           create: (context) {
+            final filter = context.read<PaymentLinkFilterCubit>().state;
             final bloc = PaymentLinkHistoryBloc(
               repository: PaymentLinkRepository(),
-              paymentCubit: PaymentLinkFilterCubit(),
             );
 
-            final filter = context.read<PaymentLinkFilterCubit>().state;
             final dateRange = DateRangeHelper.getDateRange(filter.dateRange);
             final fromDate = dateRange.fromDate;
             final toDate = dateRange.toDate;
