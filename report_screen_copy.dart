@@ -9,8 +9,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:hdfc_merchant_app/core/theme/app_theme.dart';
 import 'package:hdfc_merchant_app/core/util/date_picker_service.dart';
 import 'package:hdfc_merchant_app/core/util/gif_progressbar.dart';
+import 'package:hdfc_merchant_app/core/util/nullable_extensions.dart';
 import 'package:hdfc_merchant_app/features/dashboard_amps/utils/date_range.dart';
-import 'package:hdfc_merchant_app/features/reports/bloc/reports_bloc.dart';
 import 'package:hdfc_merchant_app/features/reports_amps/bloc/reports_event.dart';
 import 'package:hdfc_merchant_app/features/reports_amps/bloc/reports_state.dart';
 import 'package:hdfc_merchant_app/features/reports_amps/data/reports_model.dart';
@@ -19,7 +19,6 @@ import 'package:hdfc_merchant_app/features/shared/reports_searchbar.dart';
 import 'package:hdfc_merchant_app/shared/calender/alendar_cubit.dart';
 import 'package:hdfc_merchant_app/features/reports_amps/bloc/reports_bloc.dart';
 import 'package:hdfc_merchant_app/shared/widgets/pagination_control.dart';
-import 'schedule_reports_dialog.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 
 const bool enableMprMergeDownload = true;
@@ -31,11 +30,9 @@ class ReportsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (context) {
-        final calendarState = context.read<CalendarCubit>().state;
         final bloc = ReportHistoryBloc(repository: ReportsRepository());
-        print("start point");
+
         // if (calendarState.startDate != null && calendarState.endDate != null) {
-        //   print("inside calendar state");
         //   bloc.add(
         //     ReportHistoryDateRangeChanged(
         //       fromDate: calendarState.startDate!.toIso8601String(),
@@ -43,14 +40,13 @@ class ReportsScreen extends StatelessWidget {
         //     ),
         //   );
         // } else {
-        print("else condtion state");
+
         final dateRange = DateRangeHelper.getDateRange('Today');
         final fromDate = dateRange.fromDate;
         final toDate = dateRange.toDate;
 
         bloc.add(ReportHistoryFetched(fromDate: fromDate, toDate: toDate));
         //  }
-        print("end point");
         return bloc;
       },
       child: const ReportsView(),
@@ -101,6 +97,13 @@ class _ReportsViewState extends State<ReportsView> {
           ReportHistorySearchChanged(query),
         );
       }
+    });
+  }
+
+  void _onCrossClicked() {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      context.read<ReportHistoryBloc>().add(ReportHistorySearchChanged(''));
     });
   }
 
@@ -281,31 +284,45 @@ class _ReportsViewState extends State<ReportsView> {
               : Row(
                   children: [
                     Expanded(
-                      child: _buildDatePickerField(
-                        label: 'Start Date',
-                        hint: 'DD/MM/YYYY',
-                        context: context,
-                        controller: _startDateController,
-                        isStartDate: true,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          Flexible(
+                            flex: 2,
+                            child: _buildDatePickerField(
+                              label: 'Start Date',
+                              hint: 'DD/MM/YYYY',
+                              context: context,
+                              controller: _startDateController,
+                              isStartDate: true,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Flexible(
+                            flex: 2,
+                            child: _buildDatePickerField(
+                              label: 'End Date',
+                              hint: 'DD/MM/YYYY',
+                              context: context,
+                              controller: _endDateController,
+                              isStartDate: false,
+                              startDateController: _startDateController,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(width: 16),
-                    Expanded(
-                      child: _buildDatePickerField(
-                        label: 'End Date',
-                        hint: 'DD/MM/YYYY',
-                        context: context,
-                        controller: _endDateController,
-                        isStartDate: false,
-                        startDateController: _startDateController,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 15),
-                        child: _reportActionButton(),
-                      ),
+                    // Flexible(
+                    //   flex: 1,
+                    //   child: Padding(
+                    //     padding: const EdgeInsets.only(top: 15),
+                    //     child: _reportActionButton(),
+                    //   ),
+                    // ),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 28, bottom: 2),
+                      child: _reportActionButton(),
                     ),
                   ],
                 ),
@@ -400,20 +417,51 @@ class _ReportsViewState extends State<ReportsView> {
 
   Widget _reportActionButton() {
     return SizedBox(
-      height: 50,
+      height: 45,
       child: OutlinedButton(
         onPressed: () {
-          final calendarState = context.read<CalendarCubit>().state;
-          final formatter = DateFormat('yyyy-MM-dd');
-          if (calendarState.startDate != null &&
-              calendarState.endDate != null) {
-            context.read<ReportHistoryBloc>().add(
-              GenerateNewReport(
-                fromDate: formatter.format(calendarState.startDate!),
-                toDate: formatter.format(calendarState.endDate!),
+          final startText = _startDateController.text.trim();
+          final endText = _endDateController.text.trim();
+
+          if (startText.isEmpty || endText.isEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Please select both start date and end date'),
               ),
             );
+            return;
           }
+          // final calendarState = context.read<CalendarCubit>().state;
+          // final formatter = DateFormat('yyyy-MM-dd');
+          // if (calendarState.startDate != null &&
+          //     calendarState.endDate != null) {
+          try {
+            final inputFormat = DateFormat('dd/MM/yyyy');
+            final outputFormat = DateFormat('yyyy-MM-dd');
+
+            final startDate = inputFormat.parseStrict(startText);
+            final endDate = inputFormat.parseStrict(endText);
+
+            if (endDate.isBefore(startDate)) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('End date cannot be earlier than start date'),
+                ),
+              );
+              return;
+            }
+            context.read<ReportHistoryBloc>().add(
+              GenerateNewReport(
+                fromDate: outputFormat.format(startDate),
+                toDate: outputFormat.format(endDate),
+              ),
+            );
+          } catch (e) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Invalid date format')),
+            );
+          }
+          //}
         },
         style: OutlinedButton.styleFrom(
           side: const BorderSide(color: Color(0xFF2B50D9)),
@@ -450,13 +498,17 @@ class _ReportsViewState extends State<ReportsView> {
 
         final List<String> statusFilters = [
           'All Status',
+          'Success',
           'Pending',
           'Failed',
-          'Ready',
         ];
         final bloc = context.watch<ReportHistoryBloc>();
 
-        final searchField = ReportsSearchBar(onChanged: _onSearchChanged);
+        final searchField = ReportsSearchBar(
+          onChanged: _onSearchChanged,
+          onSubmitted: _onSearchChanged,
+          onPressed: _onCrossClicked,
+        );
         final statusDropdown = Container(
           width: isMobile ? double.infinity : 160,
           height: 46,
@@ -637,24 +689,94 @@ class _ReportsViewState extends State<ReportsView> {
             ).showSnackBar(SnackBar(content: Text(state.message)));
           }
           if (state is GenerateReportLoaded) {
+            _endDateController.text = '';
+            _startDateController.text = '';
             showDialog(
               context: context,
               barrierDismissible: false,
               builder: (dialogContext) {
                 return AlertDialog(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                  backgroundColor: Colors.white,
+                  surfaceTintColor: Colors.white,
+                  elevation: 8,
+                  insetPadding: const EdgeInsets.symmetric(
+                    horizontal: 60,
+                    vertical: 24,
                   ),
-                  title: const Text('Report Generation Request'),
-                  content: const Text(
-                    'Your report generation request has been submitted successfully.',
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  contentPadding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+                  actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                  content: SizedBox(
+                    width: 260,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          height: 60,
+                          width: 60,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFE8F7EE),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.check_circle_rounded,
+                            color: Color(0xFF1E9E5A),
+                            size: 34,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Report Request Submitted',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF1B233D),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Your report generation request has been submitted successfully.',
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          softWrap: true,
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 13,
+                            height: 1.4,
+                            color: Color(0xFF6B7280),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   actions: [
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pop(dialogContext);
-                      },
-                      child: const Text('OK'),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.pop(dialogContext),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF2B50D9),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          'OK',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
                     ),
                   ],
                 );
@@ -835,7 +957,6 @@ class _ReportsTablePaginated extends StatelessWidget {
             onPageChanged: (page) {
               // context.read<ReportsBloc>().add(ReportsPageChanged(page));
 
-              print("Page Changed $page");
               context.read<ReportHistoryBloc>().add(
                 ReportHistoryPageChanged(page),
               );
@@ -943,16 +1064,16 @@ Widget _buildDatePickerField({
             controller.text = formatted;
 
             if (isStartDate) {
-              if (_endDateController.text.isNotEmpty) {
+              if (controller.text.isNotEmpty) {
                 try {
                   final endDate = DateFormat(
                     'dd/MM/yyyy',
-                  ).parse(_endDateController.text);
+                  ).parse(controller.text);
                   if (endDate.isBefore(pickedDate)) {
-                    _endDateController.clear();
+                    controller.clear();
                   }
                 } catch (_) {
-                  _endDateController.clear();
+                  controller.clear();
                 }
               }
             }
@@ -1151,11 +1272,11 @@ class ReportsTableState extends State<ReportsTable> {
       (_) => [],
     );
     for (final r in _sortedReports) {
-      columnValues[0].add(r.reportName);
-      columnValues[1].add(r.reportType);
-      columnValues[2].add(r.generatedOn);
-      columnValues[3].add(r.fileSize);
-      columnValues[4].add(r.reportStatus);
+      columnValues[0].add(r.reportName.orEmpty);
+      columnValues[1].add(r.reportType.orEmpty);
+      columnValues[2].add(r.generatedOn.orEmpty);
+      columnValues[3].add(r.fileSize.orEmpty);
+      columnValues[4].add(r.reportStatus.orEmpty);
       columnValues[5].add('');
     }
 
@@ -1208,22 +1329,22 @@ class ReportsTableState extends State<ReportsTable> {
         int cmp = 0;
         switch (columnIndex) {
           case 0:
-            cmp = a.reportName.compareTo(b.reportName);
+            cmp = a.reportName.orEmpty.compareTo(b.reportName.orEmpty);
             break;
           case 1:
-            cmp = a.reportType.compareTo(b.reportType);
+            cmp = a.reportType.orEmpty.compareTo(b.reportType.orEmpty);
             break;
           case 2:
-            cmp = a.generatedOn.compareTo(b.generatedOn);
+            cmp = a.generatedOn.orEmpty.compareTo(b.generatedOn.orEmpty);
             break;
           case 3:
-            cmp = a.fileSize.compareTo(b.fileSize);
+            cmp = a.fileSize.orEmpty.compareTo(b.fileSize.orEmpty);
             break;
           case 4:
-            cmp = a.reportStatus.compareTo(b.reportStatus);
+            cmp = a.reportStatus.orEmpty.compareTo(b.reportStatus.orEmpty);
             break;
           case 5:
-            cmp = a.reportStatus.compareTo(b.reportStatus);
+            cmp = a.reportStatus.orEmpty.compareTo(b.reportStatus.orEmpty);
             break;
         }
         return ascending ? cmp : -cmp;
@@ -1370,7 +1491,15 @@ class ReportsTableState extends State<ReportsTable> {
             width: widths[0],
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: 10.0, vertical: 10.0),
-              child: Text(report.reportName?.toString() ?? ''),
+              child: Text(
+                report.reportName.toString() ?? '',
+                style: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF1B2559),
+                  fontSize: 14,
+                ),
+              ),
             ),
           ),
           SizedBox(
@@ -1390,7 +1519,18 @@ class ReportsTableState extends State<ReportsTable> {
                 horizontal: 10.0,
                 vertical: 10.0,
               ),
-              child: Text(report.generatedOn.toString() ?? ''),
+              child: Text(
+                // report.generatedOn.orEmpty,
+                DateFormat(
+                  'MMM d, yyyy h:mm a',
+                ).format(DateTime.parse(report.generatedOn.orEmpty)),
+                style: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w400,
+                  color: Color(0xFF000000),
+                  fontSize: 14,
+                ),
+              ),
             ),
           ),
           SizedBox(
@@ -1400,7 +1540,15 @@ class ReportsTableState extends State<ReportsTable> {
                 horizontal: 10.0,
                 vertical: 10.0,
               ),
-              child: Text(report.fileSize.toString() ?? ''),
+              child: Text(
+                report.fileSize.orEmpty,
+                style: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w400,
+                  color: Color(0xFF1B2559),
+                  fontSize: 14,
+                ),
+              ),
             ),
           ),
           SizedBox(
@@ -1409,7 +1557,7 @@ class ReportsTableState extends State<ReportsTable> {
               padding: const EdgeInsets.symmetric(horizontal: 10.0),
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: _buildStatusChip(report.reportStatus?.toString() ?? ''),
+                child: _buildStatusChip(report.reportStatus.orEmpty),
               ),
             ),
           ),
@@ -1421,13 +1569,38 @@ class ReportsTableState extends State<ReportsTable> {
                     current is DownloadReportLoading ||
                     current is DownloadReportLoaded,
                 builder: (context, state) {
+                  final currentReportId = report.reportId.orZero.toString();
+
+                  final isDownloading =
+                      state is DownloadReportLoading &&
+                      state.reportId == currentReportId;
+
+                  // return IconButton(
+                  //   onPressed: isDownloading
+                  //       ? null
+                  //       : () {
+                  //           context.read<ReportHistoryBloc>().add(
+                  //             DownloadReportEvent(
+                  //               reportId: currentReportId,
+                  //               scheduleName: report.reportName.orEmpty,
+                  //             ),
+                  //           );
+                  //         },
+                  //   icon: isDownloading
+                  //       ? const SizedBox(
+                  //           height: 18,
+                  //           width: 18,
+                  //           child: CircularProgressIndicator(strokeWidth: 2),
+                  //         )
+                  //       : const Icon(Icons.download_rounded, size: 18),
+                  // );
                   return IconButton(
                     icon: const Icon(Icons.download_rounded, size: 18),
                     onPressed: () {
                       context.read<ReportHistoryBloc>().add(
                         DownloadReportEvent(
-                          reportId: '${report.reportId}',
-                          scheduleName: '${report.reportName}',
+                          reportId: report.reportId.orZero.toString(),
+                          scheduleName: report.reportName.orEmpty,
                         ),
                       );
                     },
@@ -1473,8 +1646,8 @@ class ReportsTableState extends State<ReportsTable> {
         value == 'success' ||
         value == 'completed' ||
         value == 'active') {
-      bgColor = const Color(0xFFD9FBE7);
-      textColor = const Color(0xFF1C9B5F);
+      bgColor = const Color(0xFFD1FAE5);
+      textColor = const Color(0xFF059669);
     } else if (value == 'pending' || value == 'processing') {
       bgColor = const Color(0xFFFEF3C7);
       textColor = const Color(0xFFD97706);
@@ -1492,8 +1665,8 @@ class ReportsTableState extends State<ReportsTable> {
   Widget _buildTypeChip(String type) {
     return _buildChip(
       type,
-      bgColor: const Color(0xFFDCE9FF),
-      textColor: const Color(0xFF2B50D9),
+      bgColor: const Color(0xFFDBEAFE),
+      textColor: const Color(0xFF1E40AF),
     );
   }
 
