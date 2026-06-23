@@ -1,3 +1,40 @@
+
+ GoRoute(
+            path: '/merchant-dashboard',
+            builder: (context, state) {
+              return MultiBlocProvider(
+                providers: [
+                  RepositoryProvider<PaymentAnalyticsRepository>(
+                    create: (_) => PaymentAnalyticsRepositoryImpl(),
+                    child: DeferredLoader(
+                      libraryLoader: merchant_dashboard.loadLibrary,
+                      createWidget: () =>
+                          merchant_dashboard.MerchantDashboardScreen(),
+                    ),
+                  ),
+                  BlocProvider(create: (_) => DashboardFilterCubit()),
+                  BlocProvider(create: (context) => DatePickerCubit()),
+                ],
+                child: DeferredLoader(
+                  libraryLoader: merchant_dashboard.loadLibrary,
+                  createWidget: () =>
+                      merchant_dashboard.MerchantDashboardScreen(),
+                ),
+              );
+            },
+            // builder: (context, state) =>
+            //     RepositoryProvider<PaymentAnalyticsRepository>(
+            //       create: (_) => PaymentAnalyticsRepositoryImpl(),
+            //       child: DeferredLoader(
+            //         libraryLoader: merchant_dashboard.loadLibrary,
+            //         createWidget: () =>
+            //             merchant_dashboard.MerchantDashboardScreen(),
+            //       ),
+            //     ),
+          ),
+
+
+
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
