@@ -13,12 +13,17 @@ import 'package:hdfc_merchant_app/features/configs/sessionmgmt/session_manager.d
 import 'package:hdfc_merchant_app/features/dashboard/ui/widgets/PieChartPage.dart';
 import 'package:hdfc_merchant_app/features/dashboard/ui/widgets/horizontal_bar_chart_page.dart';
 import 'package:hdfc_merchant_app/features/dashboard/ui/widgets/line_chart_page.dart';
+import 'package:hdfc_merchant_app/features/dashboard_amps/bloc/dashboard_filter_cubit.dart';
+import 'package:hdfc_merchant_app/features/dashboard_amps/bloc/dashboard_filter_state.dart';
 import 'package:hdfc_merchant_app/features/dashboard_amps/bloc/payment_analytics_bloc.dart';
 import 'package:hdfc_merchant_app/features/dashboard_amps/bloc/payment_analytics_event.dart';
 import 'package:hdfc_merchant_app/features/dashboard_amps/bloc/payment_analytics_state.dart';
 import 'package:hdfc_merchant_app/features/dashboard_amps/data/payment_repository_impl.dart';
 import 'package:hdfc_merchant_app/features/dashboard_amps/data/payment_response_model.dart';
 import 'package:hdfc_merchant_app/features/dashboard_amps/utils/date_range.dart';
+import 'package:hdfc_merchant_app/shared/calender/bloc/date_picker_cubit.dart';
+import 'package:hdfc_merchant_app/shared/widgets/common_date_picker.dart';
+import 'package:intl/intl.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../reports/ui/schedule_reports_dialog.dart';
 import '../../../core/util/shared_prefs.dart';
@@ -112,7 +117,9 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen>
   }
 
   void _loadDashboard(BuildContext context) {
-    final dateRange = DateRangeHelper.getDateRange(_selectedFilter);
+    final filterDateRange = context.read<DashboardFilterCubit>().state;
+
+    final dateRange = DateRangeHelper.getDateRange(filterDateRange.dateRange);
     final fromDate = dateRange.fromDate;
     final toDate = dateRange.toDate;
 
@@ -334,6 +341,56 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen>
     return 'Good Night';
   }
 
+  Future<void> _openDatePicker() async {
+    final datePickerCubit = context.read<DatePickerCubit>();
+    final dashBloc = context.read<PaymentAnalyticsBloc>();
+
+    final CommonDatePickerResult? result =
+        await showDialog<CommonDatePickerResult>(
+          context: context,
+          barrierDismissible: true,
+          builder: (dialogContext) {
+            return Dialog(
+              insetPadding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 24,
+              ),
+              backgroundColor: Colors.transparent,
+              child: SizedBox(
+                width: 320,
+                child: CommonDatePicker(
+                  onApply: (_, value) {
+                    Navigator.of(dialogContext).pop(value);
+                  },
+                ),
+              ),
+            );
+          },
+        );
+
+    if (!mounted || result == null) return;
+
+    final startDate = DateFormat('yyyy-MM-dd').format(result.startDate);
+    final endDate = DateFormat(
+      'yyyy-MM-dd',
+    ).format(result.endDate ?? result.startDate);
+
+    datePickerCubit.setDateRange(
+      DateTime.parse(startDate),
+      DateTime.parse(endDate),
+    );
+
+    // final formatter = DateFormat('dd MMM');
+    // context.read<DashboardFilterCubit>().changeDateRange(
+    //   'Custom (${formatter.format(startDate as DateTime)} - ${formatter.format(endDate as DateTime)})',
+    // );
+    final formatter = DateFormat('dd MMM');
+    context.read<DashboardFilterCubit>().changeDateRange(
+      'Custom (${formatter.format(result.startDate)} - ${formatter.format(result.endDate)})',
+    );
+    dashBloc.add(LoadPaymentAnalytics(fromDate: startDate, toDate: endDate));
+  }
+
   // ─────────────────────────────────────────────
   // HEADER: Greeting + interactive Time Filters
   // ─────────────────────────────────────────────
@@ -344,13 +401,36 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen>
     Color border,
     BuildContext context,
   ) {
-    const filters = [
-      'Yesterday',
-      'Today',
-      'Last 7 Days',
-      'Last 15 Days',
-      'Last 30 Days',
-    ];
+    // const filters = [
+    //   'Yesterday',
+    //   'Today',
+    //   'Last 7 Days',
+    //   'Last 15 Days',
+    //   'Last 30 Days',
+    //   'Custom',
+    // ];
+
+    final filter = context.read<DashboardFilterCubit>().state;
+    final selectedDateRangeLabel = filter.dateRange;
+    final bool isCustomSelected = filter.dateRange.startsWith('Custom');
+    final List<String> dropdownItems = isCustomSelected
+        ? [
+            'Today',
+            'Yesterday',
+            'Last 7 Days',
+            'Last 15 Days',
+            'Last 30 Days',
+            selectedDateRangeLabel,
+          ]
+        : [
+            'Today',
+            'Yesterday',
+            'Last 7 Days',
+            'Last 15 Days',
+            'Last 30 Days',
+            'Custom',
+          ];
+
     final textTheme = Theme.of(context).textTheme;
 
     return Row(
@@ -371,6 +451,7 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen>
         const Spacer(),
 
         Container(
+          width: filter.dateRange.startsWith('Custom') ? 220 : 160,
           // padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
           padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
@@ -378,97 +459,49 @@ class _MerchantDashboardScreenState extends State<MerchantDashboardScreen>
             border: Border.all(color: Colors.white, width: 1),
             color: const Color.fromRGBO(255, 255, 255, 0.40),
           ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: _selectedFilter,
-              borderRadius: BorderRadius.circular(12),
-              icon: const Icon(Icons.keyboard_arrow_down_rounded),
-              style: textTheme.bodyMedium?.copyWith(
-                color: Colors.black,
-                fontWeight: FontWeight.w600,
-                fontSize: 12,
-                height: 1.5,
-              ),
+          child: BlocBuilder<DashboardFilterCubit, DashboardFilterState>(
+            builder: (context, state) {
+              return DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: state.dateRange,
+                  borderRadius: BorderRadius.circular(12),
+                  icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: Colors.black,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                    height: 1.5,
+                  ),
 
-              items: filters.map((f) {
-                return DropdownMenuItem<String>(value: f, child: Text(f));
-              }).toList(),
-              onChanged: (String? value) {
-                if (value == null || _selectedFilter == value) return;
+                  items: dropdownItems.map((f) {
+                    return DropdownMenuItem<String>(value: f, child: Text(f));
+                  }).toList(),
+                  onChanged: (String? value) {
+                    if (value == null) return;
+                    // if (value == null || _selectedFilter == value) return;
+                    // setState(() {
+                    //   _selectedFilter = value;
+                    // });
+                    print("Dashboard value $value");
+                    if (value == 'Custom') {
+                      _openDatePicker();
+                      return;
+                    }
 
-                setState(() {
-                  _selectedFilter = value;
-                });
+                    context.read<DashboardFilterCubit>().changeDateRange(value);
 
-                final dateRange = DateRangeHelper.getDateRange(value);
-                final fromDate = dateRange.fromDate;
-                final toDate = dateRange.toDate;
-                context.read<PaymentAnalyticsBloc>().add(
-                  LoadPaymentAnalytics(fromDate: fromDate, toDate: toDate),
-                );
-              },
-            ),
+                    final dateRange = DateRangeHelper.getDateRange(value);
+                    final fromDate = dateRange.fromDate;
+                    final toDate = dateRange.toDate;
+                    context.read<PaymentAnalyticsBloc>().add(
+                      LoadPaymentAnalytics(fromDate: fromDate, toDate: toDate),
+                    );
+                  },
+                ),
+              );
+            },
           ),
         ),
-        // Container(
-        //   padding: const EdgeInsets.fromLTRB(4, 0, 4, 0),
-        //   decoration: BoxDecoration(
-        //     color: AppTheme.merchantCardBg,
-        //     borderRadius: BorderRadius.circular(100),
-        //     border: Border.all(color: AppTheme.merchantBorder, width: 1),
-        //   ),
-        //   child: Row(
-        //     mainAxisSize: MainAxisSize.min,
-        //     children: filters.map((f) {
-        //       final isSelected = f == _selectedFilter;
-        //       return GestureDetector(
-        //         onTap:
-        //             // () => setState(() => _selectedFilter = f)
-        //             () {
-        //               if (_selectedFilter == f) return;
-        //               setState(() {
-        //                 _selectedFilter = f;
-        //               });
-        //               final dateRange = DateRangeHelper.getDateRange(f);
-
-        //               final fromDate = dateRange.fromDate;
-        //               final toDate = dateRange.toDate;
-
-        //               _paymentAnalyticsBloc.add(
-        //                 LoadPaymentAnalytics(
-        //                   fromDate: fromDate,
-        //                   toDate: toDate,
-        //                 ),
-        //               );
-        //             },
-        //         child: AnimatedContainer(
-        //           duration: const Duration(milliseconds: 200),
-        //           padding: const EdgeInsets.symmetric(
-        //             horizontal: 16,
-        //             vertical: 8,
-        //           ),
-        //           decoration: BoxDecoration(
-        //             color: isSelected
-        //                 ? AppTheme.merchantAccent
-        //                 : Colors.transparent,
-        //             borderRadius: BorderRadius.circular(100),
-        //           ),
-        //           child: Text(
-        //             f,
-        //             style: textTheme.bodyMedium?.copyWith(
-        //               color: isSelected ? Colors.white : textGrey,
-        //               fontWeight: isSelected
-        //                   ? FontWeight.w600
-        //                   : FontWeight.w600,
-        //               fontSize: 12,
-        //               height: 1.5,
-        //             ),
-        //           ),
-        //         ),
-        //       );
-        //     }).toList(),
-        //   ),
-        // ),
       ],
     );
   }
