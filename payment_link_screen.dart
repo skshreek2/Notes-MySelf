@@ -27,57 +27,6 @@ import 'create_payment_link_dialog.dart';
 class PaymentLinksScreen extends StatelessWidget {
   const PaymentLinksScreen({super.key});
 
-
-  Future<void> _openDatePicker() async {
-    final datePickerCubit = context.read<DatePickerCubit>();
-    final dashBloc = context.read<PaymentLinkHistoryBloc>();
-
-    final CommonDatePickerResult? result =
-        await showDialog<CommonDatePickerResult>(
-          context: context,
-          barrierDismissible: true,
-          builder: (dialogContext) {
-            return Dialog(
-              insetPadding: const EdgeInsets.symmetric(
-                horizontal: 20,
-                vertical: 24,
-              ),
-              backgroundColor: Colors.transparent,
-              child: SizedBox(
-                width: 320,
-                child: CommonDatePicker(
-                  onApply: (_, value) {
-                    Navigator.of(dialogContext).pop(value);
-                  },
-                ),
-              ),
-            );
-          },
-        );
-
-    if (!mounted || result == null) return;
-
-    final startDate = DateFormat('yyyy-MM-dd').format(result.startDate);
-    final endDate = DateFormat(
-      'yyyy-MM-dd',
-    ).format(result.endDate ?? result.startDate);
-
-    datePickerCubit.setDateRange(
-      DateTime.parse(startDate),
-      DateTime.parse(endDate),
-    );
-
-    // final formatter = DateFormat('dd MMM');
-    // context.read<DashboardFilterCubit>().changeDateRange(
-    //   'Custom (${formatter.format(startDate as DateTime)} - ${formatter.format(endDate as DateTime)})',
-    // );
-    final formatter = DateFormat('dd MMM');
-    context.read<PaymentLinkFilterCubit>().changeDateRange(
-      'Custom (${formatter.format(result.startDate)} - ${formatter.format(result.endDate)})',
-    );
-    dashBloc.add(LoadPaymentAnalytics(fromDate: startDate, toDate: endDate));
-  }
-
   @override
   Widget build(BuildContext context) {
     return MultiBlocProvider(
@@ -121,8 +70,8 @@ class _PaymentLinksViewState extends State<PaymentLinksView> {
   final TextEditingController _searchController = TextEditingController();
   Timer? _debounce;
   final PaymentLinkSearchField _selectedField = PaymentLinkSearchField.orderId;
-  String _selectedStatus = 'All Status';
-  String _selectedDaysFilter = 'Today';
+  // String _selectedStatus = 'All Status';
+  // String _selectedDaysFilter = 'Today';
 
   @override
   void initState() {
@@ -134,6 +83,55 @@ class _PaymentLinksViewState extends State<PaymentLinksView> {
     _searchController.dispose();
     _debounce?.cancel();
     super.dispose();
+  }
+
+  Future<void> _openDatePicker() async {
+    final datePickerCubit = context.read<DatePickerCubit>();
+    final dashBloc = context.read<PaymentLinkHistoryBloc>();
+
+    final CommonDatePickerResult? result =
+        await showDialog<CommonDatePickerResult>(
+          context: context,
+          barrierDismissible: true,
+          builder: (dialogContext) {
+            return Dialog(
+              insetPadding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 24,
+              ),
+              backgroundColor: Colors.transparent,
+              child: SizedBox(
+                width: 320,
+                child: CommonDatePicker(
+                  onApply: (_, value) {
+                    Navigator.of(dialogContext).pop(value);
+                  },
+                ),
+              ),
+            );
+          },
+        );
+
+    if (!mounted || result == null) return;
+
+    final startDate = DateFormat('yyyy-MM-dd').format(result.startDate);
+    final endDate = DateFormat(
+      'yyyy-MM-dd',
+    ).format(result.endDate ?? result.startDate);
+
+    datePickerCubit.setDateRange(
+      DateTime.parse(startDate),
+      DateTime.parse(endDate),
+    );
+
+    final formatter = DateFormat('dd MMM');
+    context.read<PaymentLinkFilterCubit>().changesDateRange(
+      'Custom (${formatter.format(result.startDate)} - ${formatter.format(result.endDate)})',
+    );
+
+    dashBloc.add(
+      PaymentLinkHistoryDateRangeChanged(fromDate: startDate, toDate: endDate),
+    );
   }
 
   @override
@@ -537,6 +535,10 @@ class _PaymentLinksViewState extends State<PaymentLinksView> {
                         //   _selectedDaysFilter = value;
                         // });
 
+                        if (value == 'Custom') {
+                          _openDatePicker();
+                          return;
+                        }
                         context.read<PaymentLinkFilterCubit>().changesDateRange(
                           value,
                         );
