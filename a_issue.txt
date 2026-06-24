@@ -1,25 +1,50 @@
-AppDropdown(
-              items: dropdownItems,
-              width: 160,
-              onChanged: (value) {
-                if (value != null) {
-                  // if (value == 'Custom') {
-                  //   _openDatePicker();
-                  //   return;
-                  // }
-                  if (value.startsWith('Custom')) {
-                    _openDatePicker();
-                    return;
-                  }
-                  final dateRange = DateRangeHelper.getDateRange(value);
-                  final startDate = dateRange.fromDate;
-                  final endDate = dateRange.toDate;
-                  context.read<AnalyticsBloc>().add(
-                    AnalyticsDateRangeChanged(startDate, endDate, value),
-                  );
-                }
-              },
-              value: dropdownValue,
-            ),
+ return MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (_) => ReportsFilterCubit()),
+        BlocProvider(
+          create: (_) =>
+              DownloadReportCubit(reportRepository: ReportsRepository()),
+        ),
+        BlocProvider(
+          create: (context) {
+            final bloc = ReportHistoryBloc(repository: ReportsRepository());
+            final filter = context.read<ReportsFilterCubit>().state;
 
-dropdownValueis start with Custom then increase width
+            final dateRange = DateRangeHelper.getDateRange('Today');
+            final fromDate = dateRange.fromDate;
+            final toDate = dateRange.toDate;
+
+            // bloc.add(ReportHistoryFetched(fromDate: fromDate, toDate: toDate, filter.status));
+            bloc.add(ReportHistoryFetched(fromDate: fromDate, toDate: toDate));
+            //  }
+            return bloc;
+          },
+        ),
+      ],
+      child: const ReportsView(),
+    );
+  }
+
+
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hdfc_merchant_app/features/reports_amps/bloc/download_report_state.dart';
+import 'package:hdfc_merchant_app/features/reports_amps/data/reports_repository.dart';
+
+class DownloadReportCubit extends Cubit<DownloadReportState> {
+  final ReportsRepository reportRepository;
+  DownloadReportCubit(this.reportRepository) : super(DownloadReportInitial());
+
+  Future<void> downloadReport(String reportId, String scheduleName) async {
+    emit(DownloadReportLoading(reportId));
+
+    try {
+      await reportRepository.downloadReport(reportId, scheduleName);
+
+      emit(DownloadReportSuccess(reportId));
+
+      // emit()
+    } catch (e) {
+      emit(DownloadReportFailure(reportId, message: 'Exception'));
+    }
+  }
+}
