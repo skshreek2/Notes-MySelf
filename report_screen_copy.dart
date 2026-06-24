@@ -12,6 +12,8 @@ import 'package:hdfc_merchant_app/core/util/gif_progressbar.dart';
 import 'package:hdfc_merchant_app/core/util/nullable_extensions.dart';
 import 'package:hdfc_merchant_app/features/dashboard_amps/utils/date_range.dart';
 import 'package:hdfc_merchant_app/features/reports_amps/bloc/reports_event.dart';
+import 'package:hdfc_merchant_app/features/reports_amps/bloc/reports_filter_cubit.dart';
+import 'package:hdfc_merchant_app/features/reports_amps/bloc/reports_filter_state.dart';
 import 'package:hdfc_merchant_app/features/reports_amps/bloc/reports_state.dart';
 import 'package:hdfc_merchant_app/features/reports_amps/data/reports_model.dart';
 import 'package:hdfc_merchant_app/features/reports_amps/data/reports_repository.dart';
@@ -28,27 +30,25 @@ class ReportsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) {
-        final bloc = ReportHistoryBloc(repository: ReportsRepository());
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (_) => ReportsFilterCubit()),
+        BlocProvider(
+          create: (context) {
+            final bloc = ReportHistoryBloc(repository: ReportsRepository());
+            final filter = context.read<ReportsFilterCubit>().state;
 
-        // if (calendarState.startDate != null && calendarState.endDate != null) {
-        //   bloc.add(
-        //     ReportHistoryDateRangeChanged(
-        //       fromDate: calendarState.startDate!.toIso8601String(),
-        //       toDate: calendarState.endDate!.toIso8601String(),
-        //     ),
-        //   );
-        // } else {
+            final dateRange = DateRangeHelper.getDateRange('Today');
+            final fromDate = dateRange.fromDate;
+            final toDate = dateRange.toDate;
 
-        final dateRange = DateRangeHelper.getDateRange('Today');
-        final fromDate = dateRange.fromDate;
-        final toDate = dateRange.toDate;
-
-        bloc.add(ReportHistoryFetched(fromDate: fromDate, toDate: toDate));
-        //  }
-        return bloc;
-      },
+            // bloc.add(ReportHistoryFetched(fromDate: fromDate, toDate: toDate, filter.status));
+            bloc.add(ReportHistoryFetched(fromDate: fromDate, toDate: toDate));
+            //  }
+            return bloc;
+          },
+        ),
+      ],
       child: const ReportsView(),
     );
   }
@@ -106,24 +106,6 @@ class _ReportsViewState extends State<ReportsView> {
       context.read<ReportHistoryBloc>().add(ReportHistorySearchChanged(''));
     });
   }
-
-  // void _openScheduleDialog(BuildContext context) {
-  //   showGeneralDialog(
-  //     context: context,
-  //     barrierLabel: 'Schedule Reports',
-  //     barrierDismissible: true,
-  //     barrierColor: Colors.black54,
-  //     transitionDuration: const Duration(milliseconds: 250),
-  //     pageBuilder: (ctx, anim1, anim2) {
-  //       return const SafeArea(
-  //         child: Material(
-  //           color: Colors.transparent,
-  //           child: ScheduleReportsDialog(),
-  //         ),
-  //       );
-  //     },
-  //   );
-  // }
 
   @override
   Widget build(BuildContext context) {
@@ -487,14 +469,6 @@ class _ReportsViewState extends State<ReportsView> {
     return BlocBuilder<ReportHistoryBloc, ReportHistoryState>(
       builder: (context, state) {
         final loaded = state is ReportHistoryPaginationLoaded ? state : null;
-        final List<String> daysFilters = [
-          'Today',
-          'Yesterday',
-          'Last 7 Days',
-          'Last 15 Days',
-          'Last 30 Days',
-          'Last 90 Days',
-        ];
 
         final List<String> statusFilters = [
           'All Status',
@@ -509,109 +483,64 @@ class _ReportsViewState extends State<ReportsView> {
           onSubmitted: _onSearchChanged,
           onPressed: _onCrossClicked,
         );
-        final statusDropdown = Container(
-          width: isMobile ? double.infinity : 160,
-          height: 46,
-          decoration: BoxDecoration(
-            color: AppTheme.merchantCardBg,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppTheme.merchantBorder, width: 2),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 12),
+        final statusDropdown =
+            BlocBuilder<ReportsFilterCubit, ReportsFilterState>(
+              builder: (context, filterState) {
+                return Container(
+                  width: isMobile ? double.infinity : 160,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: AppTheme.merchantCardBg,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: AppTheme.merchantBorder,
+                      width: 2,
+                    ),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
 
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: statusFilters.contains(bloc.selectedStatus)
-                  ? bloc.selectedStatus
-                  : statusFilters.first,
-              icon: const Icon(
-                Icons.keyboard_arrow_down_rounded,
-                color: Color(0x66000000),
-              ),
-              isExpanded: true,
-              style: TextStyle(
-                fontFamily: 'Inter',
-                fontWeight: FontWeight.w500,
-                fontSize: 13,
-                color: Theme.of(context).textTheme.bodyLarge?.color,
-              ),
-              dropdownColor: Theme.of(context).cardColor,
-              onChanged: (value) {
-                if (value == null) return;
-                // setState(() {
-                //   _selectedStatus = value;
-                // });
-                context.read<ReportHistoryBloc>().add(
-                  ReportHistoryStatusChanged(value),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: filterState.status,
+                      icon: const Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        color: Color(0x66000000),
+                      ),
+                      isExpanded: true,
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w500,
+                        fontSize: 13,
+                        color: Theme.of(context).textTheme.bodyLarge?.color,
+                      ),
+                      dropdownColor: Theme.of(context).cardColor,
+                      onChanged: (value) {
+                        if (value == null) return;
+                        // setState(() {
+                        //   _selectedStatus = value;
+                        // });
+
+                        context.read<ReportsFilterCubit>().changeReportStatus(
+                          value,
+                        );
+                        context.read<ReportHistoryBloc>().add(
+                          ReportHistoryStatusChanged(value),
+                        );
+                      },
+                      items: statusFilters
+                          .map(
+                            (filter) => DropdownMenuItem<String>(
+                              value: filter,
+                              child: Text(filter),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  ),
                 );
               },
-              items: statusFilters
-                  .map(
-                    (filter) => DropdownMenuItem<String>(
-                      value: filter,
-                      child: Text(filter),
-                    ),
-                  )
-                  .toList(),
-            ),
-          ),
-        );
+            );
 
-        // final daysDropdown = Container(
-        //   width: isMobile ? double.infinity : 160,
-        //   height: 46,
-        //   decoration: BoxDecoration(
-        //     color: AppTheme.merchantCardBg,
-        //     borderRadius: BorderRadius.circular(16),
-        //     border: Border.all(color: AppTheme.merchantBorder, width: 2),
-        //   ),
-        //   padding: const EdgeInsets.symmetric(horizontal: 12),
-        //   child: DropdownButtonHideUnderline(
-        //     child: DropdownButton<String>(
-        //       value: daysFilters.contains(bloc.selectedDaysFilter)
-        //           ? bloc.selectedDaysFilter
-        //           : daysFilters.first,
-        //       icon: const Icon(
-        //         Icons.keyboard_arrow_down_rounded,
-        //         color: Color(0x66000000),
-        //       ),
-        //       isExpanded: true,
-        //       style: TextStyle(
-        //         fontFamily: 'Inter',
-        //         fontWeight: FontWeight.w500,
-        //         fontSize: 13,
-        //         color: Theme.of(context).textTheme.bodyLarge?.color,
-        //       ),
-        //       dropdownColor: Theme.of(context).cardColor,
-        //       onChanged: (value) {
-        //         if (value == null) return;
-        //         // setState(() {
-        //         //   _selectedDaysFilter = value;
-        //         // });
-
-        //         final dateRange = DateRangeHelper.getDateRange(value);
-        //         final fromDate = dateRange.fromDate;
-        //         final toDate = dateRange.toDate;
-
-        //         context.read<ReportHistoryBloc>().add(
-        //           ReportHistoryDateRangeChanged(
-        //             fromDate: fromDate,
-        //             toDate: toDate,
-        //             timeFrame: value,
-        //           ),
-        //         );
-        //       },
-        //       items: daysFilters
-        //           .map(
-        //             (filter) => DropdownMenuItem<String>(
-        //               value: filter,
-        //               child: Text(filter),
-        //             ),
-        //           )
-        //           .toList(),
-        //     ),
-        //   ),
-        // );
         if (isMobile) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -904,18 +833,6 @@ class _ReportsViewState extends State<ReportsView> {
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w500),
               textAlign: TextAlign.center,
             ),
-            // const SizedBox(height: 24),
-            // ElevatedButton.icon(
-            //   onPressed: () => context.read<ReportsBloc>().add(ReportsFetched()),
-            //   icon: const Icon(Icons.refresh),
-            //   label: Text('Try Again'),
-            //   style: ElevatedButton.styleFrom(
-            //     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            //     shape: RoundedRectangleBorder(
-            //       borderRadius: BorderRadius.circular(30),
-            //     ),
-            //   ),
-            // ),
           ],
         ),
       ),
@@ -1113,88 +1030,6 @@ Widget _buildDatePickerField({
     ],
   );
 }
-// Widget _buildDatePickerField({
-//   required BuildContext context,
-//   required String label,
-//   required String hint,
-//   required TextEditingController controller,
-// }) {
-//   final today = DateTime.now();
-//   final startDate = today.subtract(const Duration(days: 180));
-//   return Column(
-//     crossAxisAlignment: CrossAxisAlignment.start,
-//     children: [
-//       Text(
-//         label,
-//         style: const TextStyle(
-//           fontFamily: 'Inter',
-//           fontWeight: FontWeight.w500,
-//           fontSize: 14,
-//           color: AppTheme.merchantNavy,
-//         ),
-//       ),
-//       const SizedBox(height: 8),
-//       TextFormField(
-//         controller: controller,
-//         readOnly: true,
-//         style: const TextStyle(
-//           fontFamily: 'Inter',
-//           fontSize: 14,
-//           color: AppTheme.merchantNavy,
-//         ),
-//         onTap: () async {
-//           DateTime? initialDate;
-
-//           if (controller.text.isNotEmpty) {
-//             try {
-//               initialDate = DateFormat('dd/MM/yyyy').parse(controller.text);
-//             } catch (_) {}
-//           }
-//           final pickedDate = await DatePickerService.showDatePickerGlobal(
-//             context: context,
-//             minDate: startDate,
-//             maxDate: initialDate,
-//             initialSelectedDate: initialDate,
-//           );
-//           if (pickedDate != null) {
-//             final formatted = DateFormat('dd/MM/yyyy').format(pickedDate);
-//             controller.text = formatted;
-//           }
-//         },
-//         decoration: InputDecoration(
-//           hintText: hint,
-//           hintStyle: const TextStyle(color: AppTheme.merchantIconGrey),
-//           suffixIcon: const Icon(
-//             Icons.calendar_today_rounded,
-//             size: 18,
-//             color: AppTheme.merchantIconGrey,
-//           ),
-//           filled: true,
-//           fillColor: Colors.white.withOpacity(0.6),
-//           contentPadding: const EdgeInsets.symmetric(
-//             horizontal: 16,
-//             vertical: 14,
-//           ),
-//           border: OutlineInputBorder(
-//             borderRadius: BorderRadius.circular(14),
-//             borderSide: const BorderSide(color: Colors.white, width: 1.5),
-//           ),
-//           enabledBorder: OutlineInputBorder(
-//             borderRadius: BorderRadius.circular(14),
-//             borderSide: const BorderSide(color: Colors.white, width: 1.5),
-//           ),
-//           focusedBorder: OutlineInputBorder(
-//             borderRadius: BorderRadius.circular(14),
-//             borderSide: const BorderSide(
-//               color: AppTheme.merchantAccent,
-//               width: 2,
-//             ),
-//           ),
-//         ),
-//       ),
-//     ],
-//   );
-// }
 
 class ReportsTable extends StatefulWidget {
   final List<ReportEntity> reports;
@@ -1569,31 +1404,6 @@ class ReportsTableState extends State<ReportsTable> {
                     current is DownloadReportLoading ||
                     current is DownloadReportLoaded,
                 builder: (context, state) {
-                  final currentReportId = report.reportId.orZero.toString();
-
-                  final isDownloading =
-                      state is DownloadReportLoading &&
-                      state.reportId == currentReportId;
-
-                  // return IconButton(
-                  //   onPressed: isDownloading
-                  //       ? null
-                  //       : () {
-                  //           context.read<ReportHistoryBloc>().add(
-                  //             DownloadReportEvent(
-                  //               reportId: currentReportId,
-                  //               scheduleName: report.reportName.orEmpty,
-                  //             ),
-                  //           );
-                  //         },
-                  //   icon: isDownloading
-                  //       ? const SizedBox(
-                  //           height: 18,
-                  //           width: 18,
-                  //           child: CircularProgressIndicator(strokeWidth: 2),
-                  //         )
-                  //       : const Icon(Icons.download_rounded, size: 18),
-                  // );
                   return IconButton(
                     icon: const Icon(Icons.download_rounded, size: 18),
                     onPressed: () {
