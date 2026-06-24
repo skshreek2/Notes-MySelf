@@ -46,12 +46,7 @@ class ReportHistoryBloc extends Bloc<ReportHistoryEvent, ReportHistoryState> {
       if (response.contains("success")) {
         emit(GenerateReportLoaded());
 
-        add(
-          ReportHistoryFetched(
-            fromDate: "",
-            toDate: "",
-          ),
-        );
+        add(ReportHistoryFetched(fromDate: "", toDate: ""));
       } else {
         emit(ReportHistoryFailure(message: 'Failed to Load data'));
       }
@@ -72,7 +67,6 @@ class ReportHistoryBloc extends Bloc<ReportHistoryEvent, ReportHistoryState> {
 
     // emit(state);
     final currentState = state;
-
 
     if (currentState is! ReportHistoryPaginationLoaded) return;
     // if (currentState is ReportHistoryPaginationLoaded) {
@@ -156,17 +150,6 @@ class ReportHistoryBloc extends Bloc<ReportHistoryEvent, ReportHistoryState> {
         toDate: "",
         status: selectedStatus,
       );
-
-      // emit(
-      //   ReportHistoryPaginationLoaded(
-      //     refunds: response.refunds,
-      //     metaInfo: response.metaInfo,
-      //     currentPage: response.currentPage,
-      //     totalPages: response.totalPages,
-      //     rowsPerPage: _rowsPerPage,
-      //     hasReachedMax: !response.hasMore,
-      //   ),
-      // );
 
       emit(
         ReportHistoryPaginationLoaded(
@@ -276,15 +259,6 @@ class ReportHistoryBloc extends Bloc<ReportHistoryEvent, ReportHistoryState> {
 
     emit(const ReportHistoryLoading());
     try {
-      // final response = await repository.fetchReportsPaginated(
-      //   page: _currentPage,
-      //   size: _rowsPerPage,
-      //   search: _currentSearch,
-      //   fromDate: _fromDate.toString(),
-      //   toDate: _toDate.toString(),
-      //   status: selectedStatus,
-      // );
-
       final response = await repository.fetchReportsPaginated(
         page: _currentPage,
         size: _rowsPerPage,
