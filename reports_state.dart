@@ -25,6 +25,7 @@ class ReportHistoryPaginationLoaded extends ReportHistoryState {
   final bool hasReachedMax;
   final String daysFilter;
   final String statusFilter;
+  final String totalElements;
 
   const ReportHistoryPaginationLoaded({
     required this.reports,
@@ -33,6 +34,7 @@ class ReportHistoryPaginationLoaded extends ReportHistoryState {
     required this.totalPages,
     required this.rowsPerPage,
     required this.hasReachedMax,
+    required this.totalElements,
     this.daysFilter = 'Today',
     this.statusFilter = 'All Status',
   });
@@ -47,6 +49,7 @@ class ReportHistoryPaginationLoaded extends ReportHistoryState {
     bool? hasReachedMax,
     String? daysFilter,
     String? statusFilter,
+    String? totalElements,
   }) {
     return ReportHistoryPaginationLoaded(
       reports: reports ?? this.reports,
@@ -56,6 +59,7 @@ class ReportHistoryPaginationLoaded extends ReportHistoryState {
       hasReachedMax: hasReachedMax ?? this.hasReachedMax,
       daysFilter: daysFilter ?? this.daysFilter,
       statusFilter: statusFilter ?? this.statusFilter,
+      totalElements: totalElements ?? this.totalElements,
     );
   }
 
@@ -76,7 +80,43 @@ class GenerateReportLoading extends ReportHistoryState {
   const GenerateReportLoading();
 }
 
-class GenerateReportLoaded extends ReportHistoryState {}
+class GenerateReportLoaded extends ReportHistoryState {
+  const GenerateReportLoaded();
+}
+
+class DownloadReportLoading extends ReportHistoryState {
+  final String reportId;
+  final ReportHistoryPaginationLoaded prevreportState;
+  const DownloadReportLoading({
+    required this.reportId,
+    required this.prevreportState,
+  });
+}
+
+class DownloadReportLoaded extends ReportHistoryState {
+  final String reportId;
+  final ReportHistoryPaginationLoaded prevreportState;
+  const DownloadReportLoaded({
+    required this.reportId,
+    required this.prevreportState,
+  });
+}
+
+class DownloadReportFailure extends ReportHistoryState {
+  final String message;
+  const DownloadReportFailure({required this.message});
+
+  @override
+  List<Object?> get props => [message];
+}
+
+class GenerateReportFailure extends ReportHistoryState {
+  final String message;
+  const GenerateReportFailure({required this.message});
+
+  @override
+  List<Object?> get props => [message];
+}
 
 class ReportHistoryFailure extends ReportHistoryState {
   final String message;
