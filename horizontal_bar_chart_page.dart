@@ -51,12 +51,13 @@ class _HorizontalBarChartPageState extends State<HorizontalBarChartPage> {
       );
     }).toList();
 
-
     final maxAmount = widget.paymentvolume
         .map((e) => math.sqrt(e.amount))
         .reduce((a, b) => a > b ? a : b);
 
-    return Expanded(
+    return SizedBox(
+      height: 260,
+      width: double.infinity,
       child: DynamicHorizontalBarChart(
         key: ValueKey(_chartGeneration),
         entries: entries,
@@ -64,12 +65,5 @@ class _HorizontalBarChartPageState extends State<HorizontalBarChartPage> {
         valueFormatter: (v) => compactFormatter.format(v),
       ),
     );
-  }
-
-  static String _trim(double v) {
-    var s = v.toStringAsFixed(2);
-    s = s.replaceFirst(RegExp(r'0+$'), '');
-    s = s.replaceFirst(RegExp(r'\.$'), '');
-    return s;
   }
 }
